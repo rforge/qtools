@@ -12,7 +12,7 @@ Collection of functions for unconditional and conditional quantiles
 Package: \tab Qtools\cr
 Type: \tab Package\cr
 Version: \tab 1.0\cr
-Date: \tab 2014-04-15\cr
+Date: \tab 2014-05-08\cr
 License: \tab GPL (>=2)\cr
 LazyLoad: \tab yes\cr
 }

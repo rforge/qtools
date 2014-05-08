@@ -1,12 +1,10 @@
 \name{ao}
 \alias{bc}
 \alias{mcjI}
-\alias{mcjIb}
 \alias{mcjII}
 \alias{invao}
 \alias{invbc}
 \alias{invmcjI}
-\alias{invmcjIb}
 \alias{invmcjII}
 \alias{ao}
 
@@ -23,10 +21,8 @@ ao(theta, lambda, symm = TRUE, omega = 0.001)
 invao(x, lambda, symm = TRUE)
 bc(x, lambda)
 invbc(x, lambda)
-mcjI(x, lambda, symm = TRUE)
-invmcjI(x, lambda, symm = TRUE)
-mcjIb(theta, lambda, symm = TRUE, omega = 0.001)
-invmcjIb(x, lambda, symm = TRUE)
+mcjI(x, lambda, symm = TRUE, bounded = FALSE, omega = 0.001)
+invmcjI(x, lambda, symm = TRUE, bounded = FALSE)
 mcjII(x, lambda, delta, bounded = FALSE, omega = 0.001)
 invmcjII(x, lambda, delta, bounded = FALSE)
 }
@@ -42,7 +38,7 @@ transformation parameters.
 logical flag. If \code{TRUE} (default) a symmetric transformation is used.
 }
   \item{bounded}{
-logical flag. If \code{TRUE} (default) the argument \code{x} is assumed to be bounded between 0 and 1.
+logical flag. If \code{TRUE} the argument \code{x} is assumed to be bounded between 0 and 1.
 }
   \item{omega}{
 small constant to avoid numerical problems when \code{theta} is exactly 0 or 1.
@@ -50,7 +46,7 @@ small constant to avoid numerical problems when \code{theta} is exactly 0 or 1.
 }
 
 \details{
-These functions transform (back-transform) \code{x} or \code{theta} conditional on the parameters \code{lambda} and \code{theta}, using the Box--Cox (\code{bc}), Aranda-Ordaz (\code{ao}), Proposal I (\code{mcjI}, \code{mcjIb}) and Proposal II (\code{mcjII}) transformations. 
+These functions transform (back-transform) \code{x} or \code{theta} conditional on the parameters \code{lambda} and \code{theta}, using the Box--Cox (\code{bc}), Aranda-Ordaz (\code{ao}), Proposal I (\code{mcjI}) and Proposal II (\code{mcjII}) transformations. 
 }
 
 \value{

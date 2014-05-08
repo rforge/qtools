@@ -11,14 +11,14 @@ Quantile Regression Tranformation Models
 These functions are used to fit quantile regression transformation models.
 }
 \usage{
-tsrq(formula, tsf, symm = TRUE, lambda = NULL, tau = 0.5, data,
-	subset,	weights, na.action, method = "fn", se = "nid", ...)
-tsrq2(formula, bounded = TRUE, lambda = NULL, delta = NULL, tau = 0.5,
-	data, subset, weights, na.action, method = "fn", se = "nid", ...)
-rcrq(formula, tsf, symm = TRUE, lambda = NULL, tau = 0.5, data,
-	subset, weights, na.action, method = "fn", se = "nid", ...)
-nlrq2(formula, par = NULL, bounded = TRUE, tau = 0.5, data,
-	subset, weights, na.action, method = "fn", se = "nid", ...)
+tsrq(formula, tsf = "mcjI", symm = TRUE, bounded = FALSE, lambda = NULL,
+	tau = 0.5, data, subset, weights, na.action, method = "fn", ...)
+tsrq2(formula, bounded = FALSE, lambda = NULL, delta = NULL, tau = 0.5,
+	data, subset, weights, na.action, method = "fn", ...)
+rcrq(formula, tsf = "mcjI", symm = TRUE, bounded = FALSE, lambda = NULL,
+	tau = 0.5, data, subset, weights, na.action, method = "fn", ...)
+nlrq2(formula, par = NULL, bounded = FALSE, tau = 0.5, data,
+	subset, weights, na.action, ...)
 }
 
 \arguments{
@@ -26,16 +26,16 @@ nlrq2(formula, par = NULL, bounded = TRUE, tau = 0.5, data,
 an object of class "\code{\link{formula}}" (or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specification are given under `Details'.
 }
   \item{tsf}{
-transformation to be used. Possible options are \code{bc} for Box-Cox and \code{ao} for Aranda-Ordaz transformation models. For Proposal I transformation models (Geraci and Jones), \code{mcjI} (singly bounded outcome) or \code{mcjIb} (doubly bounded outcome).
+transformation to be used. Possible options are \code{bc} for Box-Cox and \code{ao} for Aranda-Ordaz transformation models. For Proposal I transformation models (default), \code{mcjI}.
 }
   \item{symm}{
 logical flag. If \code{TRUE} (default) a symmetric transformation is used.
 }
   \item{bounded}{
-logical flag. If \code{TRUE} (default) the argument \code{x} is assumed to be doubly bounded on [a,b].
+logical flag. If \code{TRUE} the response is assumed to be doubly bounded on [a,b]. If \code{FALSE} the response is assumed to be singly bounded (ie, strictly positive).
 }
   \item{lambda, delta}{
-transformation parameters.
+values of transformation parameters for grid search.
 }
   \item{par}{
 vector of length \code{p + 2} of initial values for the parameters to be optimized over. The first \code{p} values are for the regression coefficients while the last 2 are for the transformation parameters \code{lambda} and \code{delta} in \code{\link{mcjII}}. These initial values are passed to \code{\link{optim}}.
@@ -58,24 +58,21 @@ a function which indicates what should happen when the data contain \code{NA}s.
   \item{method}{
 fitting algorithm for \code{\link{rq}} (default is Frisch-Newton interior point method "\code{fn}").
 }
-  \item{se}{
-specifies the method used to compute standard errors for \emph{conditional} inference on regression coefficients (see argument \code{se} in \code{\link{summary.rq}}.
-}
   \item{\dots}{
 other arguments in \code{\link{summary.rq}}).
 }
 }
 
 \details{
-These functions implement quantile regression transformation models as discussed by Geraci and Jones (see references). The general model is assumed to be \emph{Q(h(response)) = xb}, where \emph{Q} is the conditional quantile function and \emph{h} is a one- or two-parameter transformation. A typical model specified in \code{formula} has the form \code{response ~ terms} where \code{response} is the (numeric) response vector and \code{terms} is a series of terms which specifies a linear predictor for the quantile of the transformed response. The \code{response}, which is singly or doubly bounded, i.e. \code{response > 0} or \code{0 <= response <= 1} respectively (see \code{\link{map}} to map generic [a,b] intervals to [0,1]), undergoes the transformation specified in \code{tsf}. The functions \code{tsrq} and \code{tsrq2} use a two-stage (TS) estimator (Fitzenberger et al, 2010) for, respectively, one- and two-parameter transformations. The function \code{rcrq} (one-parameter tranformations) is based on the residual cusum process estimator proposed by Mu and He (2007), while the function \code{nlrq2} (two-parameter tranformations) is based on Nelder-Mean optimization (Geraci and Jones).
+These functions implement quantile regression transformation models as discussed by Geraci and Jones (see references). The general model is assumed to be \emph{Q(h(response)) = xb}, where \emph{Q} is the conditional quantile function and \emph{h} is a one- or two-parameter transformation. A typical model specified in \code{formula} has the form \code{response ~ terms} where \code{response} is the (numeric) response vector and \code{terms} is a series of terms which specifies a linear predictor for the quantile of the transformed response. The \code{response}, which is singly or doubly bounded, i.e. \code{response > 0} or \code{0 <= response <= 1} respectively, undergoes the transformation specified in \code{tsf}. If the response is bounded in the generic [a,b] interval, the latter is automatically mapped to [0,1] and no further action is required. If, however, the response is singly bounded and contains negative values, it is left to the user to offset the response or the code will produce an error. The functions \code{tsrq} and \code{tsrq2} use a two-stage (TS) estimator (Fitzenberger et al, 2010) for, respectively, one- and two-parameter transformations. The function \code{rcrq} (one-parameter tranformations) is based on the residual cusum process estimator proposed by Mu and He (2007), while the function \code{nlrq2} (two-parameter tranformations) is based on Nelder-Mean optimization (Geraci and Jones).
 }
 
 \value{
-\code{tsrq}, \code{tsrq2}, \code{rcrq}, \code{nlrq2} return an object of equivalent class. This is a list that contains as typical components:
+\code{tsrq}, \code{tsrq2}, \code{rcrq}, \code{nlrq2} return an object of \code{\link{class}} \code{rqt}. This is a list that contains as typical components:
 
-\item{}{the first \code{nt = length(tau)} components store the results from fitting \code{rq} linear models on the tranformed scale of the response.}
+\item{}{the first \code{nt = length(tau)} elements of the list store the results from fitting linear quantile models on the tranformed scale of the response.}
 \item{call}{the matched call.}
-\item{method}{the fitting algorithm for \code{rq}.}
+\item{method}{the fitting algorithm for \code{rq} or \code{optim}.}
 \item{y}{the response -- untransformed scale.}
 \item{theta}{if \code{bounded = TRUE}, the response mapped to the unit interval.}
 \item{x}{the model matrix.}
@@ -85,13 +82,11 @@ These functions implement quantile regression transformation models as discussed
 \item{eta}{the estimated parameters lambda and delta in the two-parameter Proposal II tranformation.}
 \item{lambda.grid}{grid of lambda values used for estimation.}
 \item{delta.grid}{grid of delta values used for estimation.}
-\item{tsf}{tranformation used.}
-\item{bounded}{logical flag for doubly bounded responses.}
+\item{tsf}{tranformation used (see also \code{attributes(tsf)}).}
 \item{objective}{values of the objective function minimised over the tranformation parameter(s). This is an array of dimension \code{c(nl,nt)} or \code{c(nl,nd,nt)}, where \code{nl = length(lambda.grid)}, \code{nd = length(delta.grid)} and \code{nt = length(tau)}.}
 \item{optimum}{value of the objective function at solution.}
 \item{coefficients}{quantile regression coefficients -- transformed scale.}
-\item{std.error}{standard errors (conditional on transformation parameters) -- transformed scale.}
-\item{Fitted}{fitted values.}
+\item{fitted.values}{fitted values.}
 \item{rejected}{proportion of inadmissible observations (Fitzenberger et al, 2010).}
 \item{terms}{the \code{\link{terms}} used.}
 \item{term.labels}{names of coefficients.}
@@ -110,6 +105,8 @@ Fitzenberger B, Wilke R, Zhang X. Implementing Box-Cox quantile regression. Econ
 Geraci M and Jones MC. Improved transformation-based quantile regression. Unpublished Manuscript
 
 Jones MC. Connecting distributions with power tails on the real line, the half line and the interval. International Statistical Review 2007;75(1):58-69.
+
+Koenker R (2013). quantreg: Quantile Regression. R package version 5.05. URL \url{http://CRAN.R-project.org/package=quantreg}.
 
 Mu YM, He XM. Power transformation toward a linear regression quantile. Journal of the American Statistical Association 2007;102(477):269-279.
 }
@@ -135,22 +132,21 @@ chemsub <- Chemistry[sample(1:nrow(Chemistry), 2000), ]
 tsrq(score ~ gcse, tsf = "ao", symm = TRUE, lambda = seq(0,2,by=0.01), tau = 0.9, data = chemsub)
 
 # Fit symmetric Proposal I quantile 0.9
-tsrq(score ~ gcse, tsf = "mcjIb", symm = TRUE, lambda = seq(0,2,by=0.01), tau = 0.9, data = chemsub)
+tsrq(score ~ gcse, tsf = "mcjI", symm = TRUE, bounded = TRUE, lambda = seq(0,2,by=0.01), tau = 0.9, data = chemsub)
 
 # Fit Proposal II quantile 0.9 (Nelder-Mead)
 nlrq2(score ~ gcse, bounded = TRUE, tau = 0.9, data = chemsub)
 
 # Fit Proposal II quantile 0.9 (grid search)
 # This is slower than nlrq2 but more stable numerically
-tsrq2(score ~ gcse, bounded = TRUE, lambda = seq(0, 2, by = 0.1), delta = seq(0, 2, by = 0.1),
-tau = 0.9, data = chemsub)
+tsrq2(score ~ gcse, bounded = TRUE, lambda = seq(0, 2, by = 0.1), delta = seq(0, 2, by = 0.1), tau = 0.9, data = chemsub)
 
 }
 
 }
 
 \seealso{
-\code{\link{print.tsrq}}, \code{\link{predict.tsrq}}, \code{\link{boot.tsrq}}, \code{\link{summary.boot.tsrq}}
+\code{\link{predict.rqt}}, \code{\link{summary.rqt}}
 }
 
 \keyword{ transformations }

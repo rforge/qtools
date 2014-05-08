@@ -60,11 +60,11 @@ estimation method for the fitting process. See \code{\link{rq}}.
 \details{A linear quantile regression model if fitted to the log--transformed response. Additional tranformation functions will be implemented. The notation used here follows closely that of Machado and Santos Silva (2005). This function is based on routines from package \code{quantreg} (Koenker, 2013). See also \code{lqm.counts} from package \code{lqmm} (Geraci, 2014) for Laplace gradient estimation.} 
 
 \value{
-an object of class "list" containing the following components
+a list of class \code{rq.counts} containing the following components
 
-\item{tau}{the estimated quantile.}
+\item{tau}{the order of the estimated quantile(s).}
 \item{coefficients}{regression quantile (on the log--scale).}
-\item{fitted}{predicted quantile (on the response scale).}
+\item{fitted.values}{fitted values (on the response scale).}
 \item{tTable}{coefficients, standard errors, etc.}
 \item{x}{the model matrix.}
 \item{y}{the model response.}
@@ -81,11 +81,11 @@ an object of class "list" containing the following components
 
 
 \references{
-Geraci M (2014). The lqmm package for Laplace quantile regression. Journal of Statistical Software (in press). URL http://www.jstatsoft.org/
+Geraci M (2014). The lqmm package for Laplace quantile regression. Journal of Statistical Software 57(13), 1-29. URL \url{http://www.jstatsoft.org/v57/i13/}.
+
+Koenker R (2013). quantreg: Quantile Regression. R package version 5.05. URL \url{http://CRAN.R-project.org/package=quantreg}.
 
 Machado JAF and Santos Silva JMC (2005). Quantiles for counts. Journal of the American Statistical Association, 100(472), 1226--1237.
-
-Roger Koenker (2013). quantreg: Quantile Regression. R package version 5.05. http://CRAN.R-project.org/package=quantreg
 }
 
 \author{
@@ -96,11 +96,19 @@ Marco Geraci
 
 \examples{
 
-n <- 100
-x <- runif(n)
-test <- data.frame(x = x, y = rpois(n, 2*x))
-rq.counts(y ~ x, data = test, M = 50)
+# Esterase data
+data(esterase)
 
+# Fit quantiles 0.25 and 0.75
+fit1 <- rq.counts(Count ~ Esterase, tau = 0.25, data = esterase, M = 50)
+coef(fit1)
+fit2 <- rq.counts(Count ~ Esterase, tau = 0.75, data = esterase, M = 50)
+coef(fit2)
+
+# Plot
+with(esterase, plot(Count ~ Esterase))
+lines(esterase$Esterase, fit1$fitted.values, col = "blue")
+lines(esterase$Esterase, fit2$fitted.values, col = "red")
 
 }
 \keyword{conditional quantiles}

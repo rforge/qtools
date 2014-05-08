@@ -1,23 +1,23 @@
-\name{coef.rq.counts}
-\alias{coefficients.rq.counts}
-\alias{coef.rq.counts}
+\name{coef.rqt}
+\alias{coefficients.rqt}
+\alias{coef.rqt}
 
 \title{
 Extract Coefficients
 }
 
 \description{
-\code{coef} extracts model coefficients from \code{rq.counts} objects.
+\code{coef} extracts model coefficients from \code{rqt} objects.
 }
 
 \usage{
-\method{coef}{rq.counts}(object, ...)
-\method{coefficients}{rq.counts}(object, ...)
+\method{coef}{rqt}(object, ...)
+\method{coefficients}{rqt}(object, ...)
 }
 
 \arguments{
   \item{object}{
-an \code{rq.counts} object.
+an \code{rqt} object.
 }
   \item{\dots}{
 not used.

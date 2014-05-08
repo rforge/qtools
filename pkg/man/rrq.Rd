@@ -44,6 +44,8 @@ not used.
 
 \references{
 He X. Quantile curves without crossing. The American Statistician 1997;51(2):186-192.
+
+Koenker R (2013). quantreg: Quantile Regression. R package version 5.05. URL \url{http://CRAN.R-project.org/package=quantreg}.
 }
 
 \author{

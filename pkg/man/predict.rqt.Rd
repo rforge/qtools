@@ -1,8 +1,5 @@
-\name{predict.tsrq}
-\alias{predict.tsrq2}
-\alias{predict.rcrq}
-\alias{predict.nlrq2}
-\alias{predict.tsrq}
+\name{predict.rqt}
+\alias{predict.rqt}
 
 \title{
 Predictions from Quantile Regression Transformation Models
@@ -13,10 +10,7 @@ This function computes predictions based on fitted quantile regression transform
 }
 
 \usage{
-\method{predict}{tsrq}(object, newdata, na.action = na.pass, raw = TRUE, ...)
-\method{predict}{tsrq2}(object, newdata, na.action = na.pass, raw = TRUE, ...)
-\method{predict}{rcrq}(object, newdata, na.action = na.pass, raw = TRUE, ...)
-\method{predict}{nlrq2}(object, newdata, na.action = na.pass, ...)
+\method{predict}{rqt}(object, newdata, na.action = na.pass, raw = TRUE, ...)
 }
 
 \arguments{
@@ -30,7 +24,7 @@ an optional data frame in which to look for variables with which to predict. If 
 function determining what should be done with missing values in \code{newdata}. The default is to predict \code{NA}.
 }
   \item{raw}{
-logical flag. If \code{TRUE} (default) the predictions on the transformed scale \emph{Xb} are returned; otherwise, the values are back-transformed using the inverse of the transformation \emph{h} used to fit the model, i.e. \emph{hinv(Xb)}.
+logical flag. If \code{FALSE} the predictions on the transformed scale \emph{Xb} are returned; otherwise, the values are back-transformed using the inverse of the transformation \emph{h} used to fit the model, i.e. \emph{hinv(Xb)}.
 }
   \item{\dots}{
 not used.
@@ -47,5 +41,9 @@ Marco Geraci
 }
 
 
-\keyword{ predict }
+\seealso{
+\code{\link{tsrq}}
+}
+
+\keyword{ prediction }
 

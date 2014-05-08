@@ -2,14 +2,14 @@
 \title{Internal Qtools objects}
 \alias{.First.lib}
 \alias{.Last.lib}
-\alias{my_update}
+\alias{boot.fun}
 \alias{powerbasis}
 \alias{invpowerbasis}
 \alias{powrecbasis}
 \alias{map}
 \alias{invmap}
 \alias{rcLoss}
-\alias{L1loss}
+\alias{l1Loss}
 \alias{logit}
 \alias{invlogit}
 \alias{cloglog}
