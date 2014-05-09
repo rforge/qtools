@@ -1081,11 +1081,43 @@ invisible(x)
 
 }
 
-fitted.rqt <- function(object, ...) fitted(object, ...)
-fitted.values.rqt <- function(object, ...) fitted(object, ...)
-coef.rqt <- function(object, ...) coef(object, ...)
-coefficients.rqt <- function(object, ...) coef(object, ...)
+fitted.rqt <- fitted.values.rqt <- function(object, ...){
 
+return(object$fitted.values)
+
+}
+
+
+coef.rqt <- coefficients.rqt <- function(object, all = FALSE, ...){
+
+if(!class(object) %in% c("rqt")) stop("Class 'rqt' only")
+
+tau <- object$tau
+nq <- length(tau)
+tsf <- object$tsf
+nn <- object$term.labels
+
+if(all){
+	nn <- if(tsf %in% "mcjII") c(nn, "lambda", "delta") else c(nn, "lambda")
+}
+
+if(!all){
+	ans <- object$coefficients
+} else {
+	ans <- if(nq == 1) c(object$coefficients, object$lambda)
+		else rbind(object$coefficients, object$lambda)
+}
+
+if(nq == 1){
+	names(ans) <- nn
+} else {
+	rownames(ans) <- nn
+	colnames(ans) <- paste("tau =", tau)
+}
+
+return(ans)
+
+}
 
 ##################################################
 ### Restricted quantiles (He, 1997, AmStat; Zhao, 2000, JMA)
@@ -1478,6 +1510,13 @@ if(nq == 1){
 return(ans)
 
 }
+
+fitted.rq.counts <- fitted.values.rq.counts <- function(object, ...){
+
+return(object$fitted.values)
+
+}
+
 
 predict.rq.counts <- function(object, newdata, offset, na.action = na.pass, raw = TRUE, ...) 
 {

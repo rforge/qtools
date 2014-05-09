@@ -11,13 +11,16 @@ Extract Coefficients
 }
 
 \usage{
-\method{coef}{rqt}(object, ...)
-\method{coefficients}{rqt}(object, ...)
+\method{coef}{rqt}(object, all = FALSE, ...)
+\method{coefficients}{rqt}(object, all = FALSE, ...)
 }
 
 \arguments{
   \item{object}{
 an \code{rqt} object.
+}
+  \item{all}{
+logical flag. If \code{FALSE} (default), only the regression coefficients are returned. If \code{TRUE}, the transformation parameter(s) too is returned.
 }
   \item{\dots}{
 not used.
