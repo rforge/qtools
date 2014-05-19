@@ -15,7 +15,7 @@ This function computes predictions based on fitted quantile regression transform
 
 \arguments{
   \item{object}{
-an object of \code{\link{class}} \code{tsrq}, \code{tsrq2} or \code{nlrq2}.
+an object of \code{\link{class}} \code{rqt}.
 }
   \item{newdata}{
 an optional data frame in which to look for variables with which to predict. If omitted, the fitted values are used.

@@ -7,8 +7,9 @@ Quantile Regression for Counts}
 This function is used to fit a quantile regression model when the response is a count variable.
 }
 \usage{
-rq.counts(formula, data, weights = NULL, offset = NULL, contrasts = NULL,
-	tau = 0.5, M = 50, zeta = 1e-05, B = 0.999, cn = NULL, alpha = 0.05,
+rq.counts(formula, data, tsf = "bc", symm = TRUE, lambda = 0,
+	weights = NULL, offset = NULL, contrasts = NULL, tau = 0.5,
+	M = 50, zeta = 1e-05, B = 0.999, cn = NULL, alpha = 0.05,
 	method = "fn")
 }
 
@@ -18,6 +19,15 @@ an object of class \code{\link{formula}}: a symbolic description of the model to
 }
   \item{data}{
 an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which lqm is called.
+}
+  \item{tsf}{
+transformation to be used. Possible options are \code{mcjI} for Proposal I and \code{bc} for Box-Cox. The latter is the default, with \code{lambda = 0}, ie logarithmic transformation.
+}
+  \item{symm}{
+logical flag. If \code{TRUE} and \code{tsf = 'mcj'}, the symmetric Proposal I transformation is used.
+}
+  \item{lambda}{
+a numerical value for the transformation parameter. This is provided by the user or set to zero if not specified.
 }
   \item{weights}{
 an optional vector of weights to be used in the fitting process.
@@ -45,7 +55,7 @@ right boundary for uniform random noise U[0,B] to be added to the response varia
 }
 
  \item{cn}{
-small constant to be passed to \code{\link{F.rq}} (see References).
+small constant to be passed to \code{Fn} (see Theorem 3, Machado and Santos Silva).
 }
 
  \item{alpha}{
@@ -62,26 +72,29 @@ estimation method for the fitting process. See \code{\link{rq}}.
 \value{
 a list of class \code{rq.counts} containing the following components
 
+\item{call}{the matched call.}
+\item{method}{the fitting algorithm for \code{rq}.}
+\item{x}{the model matrix.}
+\item{y}{the model response.}
 \item{tau}{the order of the estimated quantile(s).}
+\item{tsf}{tranformation used (see also \code{attributes(tsf)}).}
 \item{coefficients}{regression quantile (on the log--scale).}
 \item{fitted.values}{fitted values (on the response scale).}
 \item{tTable}{coefficients, standard errors, etc.}
-\item{x}{the model matrix.}
-\item{y}{the model response.}
 \item{offset}{offset.}
-\item{nobs}{the number of observations.}
 \item{M}{specified number of dithered samples for standard error estimation.}
 \item{Mn}{actual number of dithered samples used for standard error estimation that gave an invertible D matrix (Machado and Santos Silva, 2005).}
-\item{term.labels}{names of coefficients.}
-\item{terms}{the terms object used.}
-\item{rdf}{the number of residual degrees of freedom.}
 \item{InitialPar}{starting values for coefficients.}
-\item{method}{estimation method for the fitting process.}
+\item{terms}{the terms object used.}
+\item{term.labels}{names of coefficients.}
+\item{rdf}{the number of residual degrees of freedom.}
 }
 
 
 \references{
 Geraci M (2014). The lqmm package for Laplace quantile regression. Journal of Statistical Software 57(13), 1-29. URL \url{http://www.jstatsoft.org/v57/i13/}.
+
+Geraci M and Jones MC. Improved transformation-based quantile regression. Unpublished Manuscript
 
 Koenker R (2013). quantreg: Quantile Regression. R package version 5.05. URL \url{http://CRAN.R-project.org/package=quantreg}.
 
@@ -109,6 +122,7 @@ coef(fit2)
 with(esterase, plot(Count ~ Esterase))
 lines(esterase$Esterase, fit1$fitted.values, col = "blue")
 lines(esterase$Esterase, fit2$fitted.values, col = "red")
+legend(8, 1000, lty = c(1,1), col = c("blue", "red"), legend = c("tau = 0.25","tau = 0.75"))
 
 }
 \keyword{conditional quantiles}

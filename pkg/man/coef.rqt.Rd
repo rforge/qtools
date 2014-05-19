@@ -35,4 +35,8 @@ a vector for single quantiles or a matrix for multiple quantiles.
 Marco Geraci
 }
 
+\seealso{
+\code{\link{tsrq}}
+}
+
 \keyword{coefficients}

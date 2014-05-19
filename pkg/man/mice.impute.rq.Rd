@@ -11,10 +11,10 @@ This function is used to multiply impute missing values using quantile regressio
 }
 
 \usage{
-mice.impute.rq(y, ry, x, tsf = "none", lambda = NULL, symm = TRUE,
-	bounded = FALSE, epsilon = 0.001, method.rq = "fn", ...)
-mice.impute.rrq(y, ry, x, tsf = "none", lambda = NULL, symm = TRUE,
-	bounded = FALSE, epsilon = 0.001, method.rq = "fn", ...)
+mice.impute.rq(y, ry, x, tsf = "none", symm = TRUE,	bounded = FALSE,
+	lambda = NULL, epsilon = 0.001, method.rq = "fn", ...)
+mice.impute.rrq(y, ry, x, tsf = "none", symm = TRUE, bounded = FALSE,
+	lambda = NULL, epsilon = 0.001, method.rq = "fn", ...)
 }
 
 \arguments{
@@ -30,14 +30,14 @@ matrix \code{n x p} of completely observed covariates.
   \item{tsf}{
 transformation to be used. Possible options are \code{mcjI} for Proposal I, \code{bc} for Box-Cox and \code{ao} for Aranda-Ordaz transformation models. No transformation is used by default.
 }
-  \item{lambda}{
-a numerical value for the transformation parameter. This is provided by the user or set to zero if not specified.
-}
   \item{symm}{
 logical flag. If \code{TRUE} (default) a symmetric transformation is used.
 }
   \item{bounded}{
 logical flag. If \code{TRUE} the response \code{y} is assumed to be bounded between 0 and 1.
+}
+  \item{lambda}{
+a numerical value for the transformation parameter. This is provided by the user or set to zero if not specified.
 }
   \item{epsilon}{
 constant used to trim the values of the sample space.

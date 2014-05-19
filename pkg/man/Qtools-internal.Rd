@@ -2,6 +2,9 @@
 \title{Internal Qtools objects}
 \alias{.First.lib}
 \alias{.Last.lib}
+\alias{marefbc}
+\alias{marefao}
+\alias{marefmcjI}
 \alias{boot.fun}
 \alias{powerbasis}
 \alias{invpowerbasis}
@@ -14,9 +17,6 @@
 \alias{invlogit}
 \alias{cloglog}
 \alias{invcloglog}
-\alias{perc.ci}
-\alias{norm.inter}
-\alias{F.rq}
 \alias{addnoise}
 \alias{KhmaladzeTable}
 \description{Internal Qtools objects.}
