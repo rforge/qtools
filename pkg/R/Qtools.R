@@ -1214,11 +1214,13 @@ if(all){
 	nn <- if(tsf %in% "mcjII") c(nn, "lambda", "delta") else c(nn, "lambda")
 }
 
+tpar <- if(tsf %in% "mcjII") object$eta else object$lambda
+
 if(!all){
 	ans <- object$coefficients
 } else {
-	ans <- if(nq == 1) c(object$coefficients, object$lambda)
-		else rbind(object$coefficients, object$lambda)
+	ans <- if(nq == 1) c(object$coefficients, tpar)
+		else rbind(object$coefficients, tpar)
 }
 
 if(nq == 1){
