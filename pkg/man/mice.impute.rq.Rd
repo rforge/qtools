@@ -106,7 +106,8 @@ imp <- mice(nhanes2, meth = c("polyreg", "rrq", "logreg", "rrq"), m = 5)
 fit <- lm.mids(bmi ~ hyp + chl, data = imp)
 pool(fit)
 
-# Impute using quantile regression + Box-Cox transformation with parameter lambda = 0 (ie, log transformation)
+# Impute using quantile regression + Box-Cox transformation with parameter
+# lambda = 0 (ie, log transformation)
 
 set.seed(199)
 imp <- mice(nhanes2, meth = c("polyreg", "rq", "logreg", "rq"), m = 5, tsf = "bc", lambda = 0)

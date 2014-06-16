@@ -132,14 +132,16 @@ chemsub <- Chemistry[sample(1:nrow(Chemistry), 2000), ]
 tsrq(score ~ gcse, tsf = "ao", symm = TRUE, lambda = seq(0,2,by=0.01), tau = 0.9, data = chemsub)
 
 # Fit symmetric Proposal I quantile 0.9
-tsrq(score ~ gcse, tsf = "mcjI", symm = TRUE, bounded = TRUE, lambda = seq(0,2,by=0.01), tau = 0.9, data = chemsub)
+tsrq(score ~ gcse, tsf = "mcjI", symm = TRUE, bounded = TRUE, lambda = seq(0,2,by=0.01),
+	tau = 0.9, data = chemsub)
 
 # Fit Proposal II quantile 0.9 (Nelder-Mead)
 nlrq2(score ~ gcse, bounded = TRUE, tau = 0.9, data = chemsub)
 
 # Fit Proposal II quantile 0.9 (grid search)
 # This is slower than nlrq2 but more stable numerically
-tsrq2(score ~ gcse, bounded = TRUE, lambda = seq(0, 2, by = 0.1), delta = seq(0, 2, by = 0.1), tau = 0.9, data = chemsub)
+tsrq2(score ~ gcse, bounded = TRUE, lambda = seq(0, 2, by = 0.1),
+	delta = seq(0, 2, by = 0.1), tau = 0.9, data = chemsub)
 
 }
 

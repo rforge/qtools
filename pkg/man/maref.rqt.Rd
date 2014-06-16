@@ -67,7 +67,8 @@ head(fit$x)
 maref(fit, index = 2)
 
 # Plot marginal effect over grid of values (for fixed girth)
-nd <- data.frame(Height = seq(min(trees$Height), max(trees$Height), length = 100), Girth = rep(mean(trees$Girth), 100))
+nd <- data.frame(Height = seq(min(trees$Height), max(trees$Height), length = 100),
+	Girth = rep(mean(trees$Girth), 100))
 x <- maref(fit, newdata = nd, index = 2)
 plot(nd$Height, x, xlab = "height", ylab = "marginal effect on volume")
 
