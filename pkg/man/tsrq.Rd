@@ -12,9 +12,10 @@ These functions are used to fit quantile regression transformation models.
 }
 \usage{
 tsrq(formula, tsf = "mcjI", symm = TRUE, bounded = FALSE, lambda = NULL,
-	tau = 0.5, data, subset, weights, na.action, method = "fn", ...)
+	conditional = FALSE, tau = 0.5, data, subset, weights, na.action,
+	method = "fn", ...)
 tsrq2(formula, bounded = FALSE, lambda = NULL, delta = NULL, tau = 0.5,
-	data, subset, weights, na.action, method = "fn", ...)
+	conditional = FALSE, data, subset, weights, na.action, method = "fn", ...)
 rcrq(formula, tsf = "mcjI", symm = TRUE, bounded = FALSE, lambda = NULL,
 	tau = 0.5, data, subset, weights, na.action, method = "fn", ...)
 nlrq2(formula, par = NULL, bounded = FALSE, tau = 0.5, data,
@@ -26,7 +27,7 @@ nlrq2(formula, par = NULL, bounded = FALSE, tau = 0.5, data,
 an object of class "\code{\link{formula}}" (or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specification are given under `Details'.
 }
   \item{tsf}{
-transformation to be used. Possible options are \code{bc} for Box-Cox and \code{ao} for Aranda-Ordaz transformation models. For Proposal I transformation models (default), \code{mcjI}.
+transformation to be used. Possible options are \code{mcjI} for Proposal I transformation models (default) of Geraci and Jones, \code{bc} for Box-Cox and \code{ao} for Aranda-Ordaz transformation models (Dehbi, Cortina-Borja, Geraci).
 }
   \item{symm}{
 logical flag. If \code{TRUE} (default) a symmetric transformation is used.
@@ -36,6 +37,9 @@ logical flag. If \code{TRUE} the response is assumed to be doubly bounded on [a,
 }
   \item{lambda, delta}{
 values of transformation parameters for grid search.
+}
+  \item{conditional}{
+logical flag. If \code{TRUE}, the transformation parameter is assumed to be known and this must be provided via the arguments \code{lambda}, \code{delta} in vectors of the same length as \code{tau}.
 }
   \item{par}{
 vector of length \code{p + 2} of initial values for the parameters to be optimized over. The first \code{p} values are for the regression coefficients while the last 2 are for the transformation parameters \code{lambda} and \code{delta} in \code{\link{mcjII}}. These initial values are passed to \code{\link{optim}}.
@@ -102,7 +106,7 @@ Dehbi H-M, Cortina-Borja M, Geraci M. Aranda-Ordaz quantile regression for stude
 
 Fitzenberger B, Wilke R, Zhang X. Implementing Box-Cox quantile regression. Econometric Reviews 2010;29(2):158-181.
 
-Geraci M and Jones MC. Improved transformation-based quantile regression. Unpublished Manuscript
+Geraci M and Jones MC. Improved transformation-based quantile regression. Canadian Journal of Statistics 2014 (in press).
 
 Jones MC. Connecting distributions with power tails on the real line, the half line and the interval. International Statistical Review 2007;75(1):58-69.
 

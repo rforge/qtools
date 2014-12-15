@@ -169,24 +169,24 @@ plot(z, x$shape$shape, ylab = "shape", type = type, ...)
 }
 
 
-
 ######################################################################
 ### Transformation models
 ######################################################################
 
-# Basis transformation functions
+# base transformation functions
 
-powerbasis <- function(x, lambda){
+powerbase <- function(x, lambda){
 (x^(lambda) - 1)/lambda
 }
 
-invpowerbasis <- function(x, lambda){
-
+invpowerbase <- function(x, lambda, replace = TRUE){
+sx <- if(replace) 0 else NA
 val <- (lambda*x + 1)^(1/lambda)
+val[(lambda*x + 1) <= 0] <- sx
 return(val)
 }
 
-powrecbasis <- function(x, lambda){
+powrecbase <- function(x, lambda){
 1/(2*lambda) * (x^lambda - x^(-lambda))
 }
 
@@ -247,7 +247,7 @@ if(bounded){
 }
 
 if(lambda != 0){
-	val <-  powrecbasis(x, lambda)
+	val <-  powrecbase(x, lambda)
 	} else {val <- log(x)}
 
 return(val)
@@ -312,12 +312,12 @@ if(delta == 0){
 
 if(bounded){
 	x <- ((1-x)^(-delta) - 1)/delta
-	val <- powrecbasis(x, lambda)
+	val <- powrecbase(x, lambda)
 }
 else {
 	x <- x/(1+x)
 	x <- ((1-x)^(-delta) - 1)/delta
-	val <- powrecbasis(x, lambda)
+	val <- powrecbase(x, lambda)
 }
 
 
@@ -379,16 +379,18 @@ return(val)
 
 # Inverse Aranda-Ordaz transformation (symmetric and asymmetric)
 
-invao <- function(x, lambda, symm  = TRUE){
+invao <- function(x, lambda, symm  = TRUE, replace = TRUE){
+sx <- if(replace) 0 else NA
+dx <- if(replace) 1 else NA
 
 if(symm){
 	if(lambda != 0){
 		y <- (lambda*x/2)
 		a <- (1 + y)^(1/lambda)
 		b <- (1 - y)^(1/lambda)
-		val <- rep(1, length(x))
+		val <- rep(dx, length(x))
 		val <- ifelse(abs(y) < 1, a/(a + b), val)
-		val[y <= -1] <- 0
+		val[y <= -1] <- sx
 	} else {val <- invlogit(x)}
 } else {
 	if(lambda != 0){
@@ -405,15 +407,15 @@ return(as.numeric(val))
 
 bc <- function(x, lambda){
 if(any(x <= 0)) stop("x must be strictly positive")
-val <- if(lambda != 0) powerbasis(x, lambda) else log(x)
+val <- if(lambda != 0) powerbase(x, lambda) else log(x)
 return(val)
 }
 
 # Inverse Box-Cox transformation
 
-invbc <- function(x, lambda){
+invbc <- function(x, lambda, replace = TRUE){
 
-val <- if(lambda != 0) invpowerbasis(x, lambda) else exp(x)
+val <- if(lambda != 0) invpowerbase(x, lambda, replace = replace) else exp(x)
 return(val)
 }
 
@@ -480,7 +482,7 @@ return(mean(out^2))
 
 # Two-stage estimator
 
-tsrq <- function(formula, tsf = "mcjI", symm = TRUE, bounded = FALSE, lambda = NULL, tau = 0.5, data, subset, weights, na.action, method = "fn", ...){
+tsrq <- function(formula, tsf = "mcjI", symm = TRUE, bounded = FALSE, lambda = NULL, conditional = FALSE, tau = 0.5, data, subset, weights, na.action, method = "fn", ...){
 
 if(any(tau <= 0) | any(tau >= 1)) stop("Quantile index out of range")
 if(any(duplicated(tau))) tau <- unique(tau)
@@ -505,14 +507,14 @@ isBounded <- (tsf == "mcjI" && bounded)
 isBounded <- tsf == "ao" || isBounded
 if(isBounded) y <- map(y)
 
-if(is.null(lambda)){
+if(is.null(lambda) && !conditional){
 	lambda <- if(tsf == "ao" & symm == FALSE) seq(-2, 2, by = 0.005)
 		else seq(0, 2, by = 0.005)
 }
+nl <- length(lambda)
 
 n <- length(y)
 p <- ncol(x)
-nl <- length(lambda)
 
 zhat <- res <- array(NA, dim = c(n, nq, nl))
 matLoss <- rejected <- matrix(NA, nq, nl)
@@ -523,50 +525,54 @@ data.tmp <- data
 if(!missing(subset))
 	data.tmp <- subset(data, subset)
 
-for(i in 1:nl){
+if(!conditional){
+	for(i in 1:nl){
 
-# transform response
-data.tmp$newresponse <- switch(tsf,
-	mcjI = mcjI(y, lambda[i], symm, bounded, omega = 0.001),
-	bc = bc(y, lambda[i]),
-	ao = ao(y, lambda[i], symm, omega = 0.001)
-	)
-
-# estimate linear QR for for sequence of lambdas
-	for(j in 1:nq){
-	fit <- try(do.call(rq, args = list(formula = f.tmp, data = data.tmp, tau = tau[j], method = method, weights = w)), silent = TRUE)
-		if(class(fit)!="try-error"){
-		zhat[,j,i] <- predict(fit)
-		
-		Fitted <- switch(tsf,
-			mcjI = invmcjI(zhat[,j,i], lambda[i], symm, bounded),
-			bc = invbc(zhat[,j,i], lambda[i]),
-			ao = invao(zhat[,j,i], lambda[i], symm),
+	# transform response
+	data.tmp$newresponse <- switch(tsf,
+		mcjI = mcjI(y, lambda[i], symm, bounded, omega = 0.001),
+		bc = bc(y, lambda[i]),
+		ao = ao(y, lambda[i], symm, omega = 0.001)
 		)
-		
-		res <- y - Fitted
-		
-		if(tsf == "bc"){
-			FLAG <- lambda[i]*zhat[,j,i] + 1 > 0
-			Ind[,j,i] <- FLAG
-			rejected[j,i] <- mean(!FLAG)
-			}
 
-		if(tsf == "ao" & symm == TRUE){
-			FLAG <- abs(lambda[i]*zhat[,j,i]/2) - 1 < 0
-			Ind[,j,i] <- FLAG
-			rejected[j,i] <- mean(!FLAG)
+	# estimate linear QR for a sequence of lambdas
+		for(j in 1:nq){
+		fit <- try(do.call(rq, args = list(formula = f.tmp, data = data.tmp, tau = tau[j], method = method, weights = w)), silent = TRUE)
+			if(class(fit)!="try-error"){
+			zhat[,j,i] <- predict(fit)
+			
+			Fitted <- switch(tsf,
+				mcjI = invmcjI(zhat[,j,i], lambda[i], symm, bounded),
+				bc = invbc(zhat[,j,i], lambda[i]),
+				ao = invao(zhat[,j,i], lambda[i], symm),
+			)
+			
+			res <- y - Fitted
+			
+			if(tsf == "bc"){
+				FLAG <- lambda[i]*zhat[,j,i] + 1 > 0
+				Ind[,j,i] <- FLAG
+				rejected[j,i] <- mean(!FLAG)
+				}
+
+			if(tsf == "ao" & symm == TRUE){
+				FLAG <- abs(lambda[i]*zhat[,j,i]/2) - 1 < 0
+				Ind[,j,i] <- FLAG
+				rejected[j,i] <- mean(!FLAG)
+				}
+			
+			matLoss[j,i] <- l1Loss(res, tau = tau[j], weights = w)
 			}
-		
-		matLoss[j,i] <- l1Loss(res, tau = tau[j], weights = w)
 		}
 	}
+	if(all(is.na(matLoss))) return(list(call = call, y = y, x = x))
+	# minimise for lambda
+	lambdahat <- apply(matLoss, 1, function(x, lambda) lambda[which.min(x)], lambda = lambda)
+} else {
+	if(is.null(lambda)) stop("Must specify value for 'lambda' when 'conditional = TRUE'")
+	if(length(lambda) != nq) stop("Length of 'lambda' must be the same as length of 'tau'")
+	lambdahat <- lambda
 }
-
-if(all(is.na(matLoss))) return(list(call = call, y = y, x = x))
-
-# minimise for lambda
-lambdahat <- apply(matLoss, 1, function(x, lambda) lambda[which.min(x)], lambda = lambda)
 
 betahat <- matrix(NA, p, nq)
 colnames(betahat) <- tau
@@ -611,7 +617,7 @@ fit$x <- x
 fit$weights <- w
 fit$tau <- tau
 fit$lambda <- lambdahat
-fit$lambda.grid <- lambda
+fit$lambda.grid <- if(conditional) NULL else lambda
 fit$tsf <- tsf
 attr(fit$tsf, "symm") <- symm
 attr(fit$tsf, "bounded") <- bounded
@@ -761,7 +767,7 @@ return(fit)
 
 # Two-stage estimator
 
-tsrq2 <- function(formula, bounded = FALSE, lambda = NULL, delta = NULL, tau = 0.5, data, subset, weights, na.action, method = "fn", ...){
+tsrq2 <- function(formula, bounded = FALSE, lambda = NULL, delta = NULL, conditional = FALSE, tau = 0.5, data, subset, weights, na.action, method = "fn", ...){
 
 if(any(tau <= 0) | any(tau >= 1)) stop("Quantile index out of range")
 if(any(duplicated(tau))) tau <- unique(tau)
@@ -782,10 +788,10 @@ w <- if (missing(weights)) rep(1, length(y)) else weights
 x <- model.matrix(mt, mf, contrasts)
 if(bounded) y <- map(y)
 
-if(is.null(lambda)){
+if(is.null(lambda) && !conditional){
 	lambda <- seq(0, 2, by = 0.005)
 }
-if(is.null(delta)){
+if(is.null(delta) && !conditional){
 	delta <- seq(0, 2, by = 0.005)
 }
 nl <- length(lambda)
@@ -802,27 +808,33 @@ data.tmp <- data
 if(!missing(subset))
 	data.tmp <- subset(data, subset)
 
-for(k in 1:nd){
-	for(i in 1:nl){
-	# transform response
-	data.tmp$newresponse <- mcjII(y, lambda[i], delta[k], bounded, omega = 0.001)
-		for(j in 1:nq){
-		fit <- try(do.call(rq, args = list(formula = f.tmp, data = data.tmp, tau = tau[j], method = method, weights = w)), silent = TRUE)
-			if(class(fit)!="try-error"){
-			Fitted <- invmcjII(predict(fit), lambda[i], delta[k], bounded)
-			matLoss[i,k,j] <- l1Loss(y - Fitted, tau = tau[j], weights = w)
+if(!conditional){
+	for(k in 1:nd){
+		for(i in 1:nl){
+		# transform response
+		data.tmp$newresponse <- mcjII(y, lambda[i], delta[k], bounded, omega = 0.001)
+			for(j in 1:nq){
+			fit <- try(do.call(rq, args = list(formula = f.tmp, data = data.tmp, tau = tau[j], method = method, weights = w)), silent = TRUE)
+				if(class(fit)!="try-error"){
+				Fitted <- invmcjII(predict(fit), lambda[i], delta[k], bounded)
+				matLoss[i,k,j] <- l1Loss(y - Fitted, tau = tau[j], weights = w)
+				}
 			}
+
 		}
-
 	}
+	if(all(is.na(matLoss))) return(list(call = call, y = y, x = x))
+	# minimise for lambda
+	parhat <- apply(matLoss, 3, function(x, lambda, delta){
+	m <- which(x == min(x, na.rm = TRUE), arr.ind = TRUE)[1,];
+	return(c(lambda[m[1]], delta[m[2]]))}, lambda = lambda, delta = delta)
+} else {
+	if(is.null(lambda)) stop("Must specify value for 'lambda' when 'conditional = TRUE'")
+	if(length(lambda) != nq) stop("Length of 'lambda' must be the same as length of 'tau'")
+	if(is.null(delta)) stop("Must specify value for 'delta' when 'conditional = TRUE'")
+	if(length(delta) != nq) stop("Length of 'delta' must be the same as length of 'tau'")
+	parhat <- matrix(c(lambda, delta), ncol = nq, byrow = TRUE)
 }
-
-if(all(is.na(matLoss))) return(list(call = call, y = y, x = x))
-
-# minimise for lambda
-parhat <- apply(matLoss, 3, function(x, lambda, delta){
-m <- which(x == min(x, na.rm = TRUE), arr.ind = TRUE)[1,];
-return(c(lambda[m[1]], delta[m[2]]))}, lambda = lambda, delta = delta)
 
 betahat <- matrix(NA, p, nq)
 Fitted <- matrix(NA, n, nq)
@@ -856,14 +868,14 @@ fit$x <- x
 fit$weights <- w
 fit$tau <- tau
 fit$eta <- parhat
-fit$lambda.grid <- lambda
-fit$delta.grid <- delta
+fit$lambda.grid <- if(conditional) NULL else lambda
+fit$delta.grid <- if(conditional) NULL else delta
 fit$tsf <- "mcjII"
 attr(fit$tsf, "bounded") <- bounded
 attr(fit$tsf, "isBounded") <- bounded
 attr(fit$tsf, "npar") <- 2
 fit$objective <- matLoss
-fit$optimum <- apply(matLoss, 3, function(x){m <- which(x == min(x, na.rm = TRUE), arr.ind = TRUE)[1,];return(x[m[1],m[2]])})
+fit$optimum <- if(conditional) NA else apply(matLoss, 3, function(x){m <- which(x == min(x, na.rm = TRUE), arr.ind = TRUE)[1,];return(x[m[1],m[2]])})
 fit$coefficients <- betahat
 fit$fitted.values <- drop(Fitted)
 fit$terms <- mt
@@ -1083,36 +1095,10 @@ mpar <- ncol(object$x)
 ntot <- mpar + attr(object$tsf, "npar")
 if(mpar == 1) object$mf$intercept <- 1
 
-if(!conditional){
-	Args <- list()
-	Args$data <- object$mf
-	Args$statistic <- boot.fun
-	Args$object <- object
-	Args$R <- R
-	Args$sim <- sim
-	Args$stype <- stype
-	nn <- c("strata","L","m","weights","ran.gen","mle","simple","parallel","ncpus","cl")
-	nn <- nn[pmatch(names(call), nn, duplicates.ok = FALSE)]
-	nn <- nn[!is.na(nn)]
-	if(length(nn) > 0) {tmp <- as.list(call[[nn]]); names(tmp) <- nn; Args <- c(Args, tmp)}
-	B <- do.call(boot, args = Args)
-	ci <- mapply(boot.ci, index = 1:(ntot*nq), MoreArgs = list(boot.out = B, conf = 1 - alpha, type = "perc"))[4,]
-	ci <- t(sapply(ci, function(x) x[4:5]))
+flag <- (!conditional) && (se %in% c("iid","nid"))
+if(object$tsf == "mcjII" && flag)  stop("Summary not available. Change to 'se = boot' or 'conditional = TRUE'.")
 
-	S <- cov(B$t, use = "complete.obs")
-	val <- cbind(B$t0, apply(B$t, 2L, mean, na.rm=TRUE) - B$t0, sqrt(diag(S)), ci)
-	nn <- c("Value", "Bias", "Std. Error", "Lower bound", "Upper bound")
-	colnames(val) <- nn
-	
-	maxn <- seq(0, ntot*nq, by = ntot)[-1]
-	minn <- seq(1, ntot*nq, by = ntot)
-	ans <- list()
-	for(j in 1:nq){
-		ans[[j]] <- val[minn[j]:maxn[j], ]
-	}
-	names(ans) <- tau
-	object$B <- B
-} else {
+if(conditional){
 	ans <- list()
 	for(j in 1:nq){
 		Args <- list()
@@ -1130,9 +1116,52 @@ if(!conditional){
 			rownames(tmp) <- c("lambda","delta")
 		} else {
 			tmp <- c(object$lambda[j], rep(NA, ncol(ans[[j]]) - 1))
+			names(tmp) <- "lambda"
 		}
 		ans[[j]] <- rbind(ans[[j]], tmp) 
 	}
+} else {
+	if(se == "boot"){
+		Args <- list()
+		Args$data <- object$mf
+		Args$statistic <- boot.fun
+		Args$object <- object
+		Args$R <- R
+		Args$sim <- sim
+		Args$stype <- stype
+		nn <- c("strata","L","m","weights","ran.gen","mle","simple","parallel","ncpus","cl")
+		nn <- nn[pmatch(names(call), nn, duplicates.ok = FALSE)]
+		nn <- nn[!is.na(nn)]
+		if(length(nn) > 0) {tmp <- as.list(call[[nn]]); names(tmp) <- nn; Args <- c(Args, tmp)}
+		B <- do.call(boot, args = Args)
+		ci <- mapply(boot.ci, index = 1:(ntot*nq), MoreArgs = list(boot.out = B, conf = 1 - alpha, type = "perc"))[4,]
+		ci <- t(sapply(ci, function(x) x[4:5]))
+
+		S <- cov(B$t, use = "complete.obs")
+		val <- cbind(B$t0, apply(B$t, 2L, mean, na.rm=TRUE) - B$t0, sqrt(diag(S)), ci)
+		nn <- c("Value", "Bias", "Std. Error", "Lower bound", "Upper bound")
+		colnames(val) <- nn
+		
+		maxn <- seq(0, ntot*nq, by = ntot)[-1]
+		minn <- seq(1, ntot*nq, by = ntot)
+		ans <- list()
+		for(j in 1:nq){
+			ans[[j]] <- val[minn[j]:maxn[j], ]
+		}
+		names(ans) <- tau
+		object$B <- B
+	} else if(se %in% c("iid", "nid")) {
+		ans <- list()
+		S <- se.rqt(object, se = se)
+		for(j in 1:nq){
+			val <- c(object[[j]]$coefficients, lambda = object$lambda[j])
+			val <- cbind(val, sqrt(diag(S[,,j])), val - sqrt(diag(S[,,j]))*qnorm(1-alpha/2), val + sqrt(diag(S[,,j]))*qnorm(1-alpha/2))
+			nn <- c("Value", "Std. Error", "Lower bound", "Upper bound")
+			colnames(val) <- nn
+			ans[[j]] <- val
+		}
+		names(ans) <- tau
+	} else ans <- NULL	
 }
 
 attr(ans, "conditional") <- conditional
@@ -1233,6 +1262,545 @@ if(nq == 1){
 return(ans)
 
 }
+
+##################################################
+### Asymptotics
+##################################################
+
+# Generic
+sparsity <- function(...) UseMethod("sparsity")
+
+sparsity.rqt <- function(object, se = "nid", hs = TRUE){
+    mt <- terms(object)
+    m <- model.frame(object)
+    y <- model.response(m)
+    x <- model.matrix(mt, m, contrasts = object$contrasts)
+    wt <- model.weights(object$model)
+    taus <- object$tau
+    nt <- length(taus)
+    eps <- .Machine$double.eps^(2/3)
+
+    vnames <- dimnames(x)[[2]]
+    residm <- sweep(- predict(object, raw = TRUE), 1, y, FUN = "+")
+    n <- length(y)
+    p <- length(coefficients(object, all = TRUE))
+    rdf <- n - p
+    if (!is.null(wt)) {
+        residm <- residm * wt
+        x <- x * wt
+        y <- y * wt
+    }
+    if (is.null(se)) {
+        if (n < 1001) 
+            se <- "rank"
+        else se <- "nid"
+    }
+
+spar <- dens <- matrix(NA, n, nt)
+for(i in 1:nt){
+
+tau <- taus[i]
+
+    if (se == "iid") {
+		resid <- residm[,i]
+        pz <- sum(abs(resid) < eps)
+        h <- max(p + 1, ceiling(n * bandwidth.rq(tau, n, hs = hs)))
+        ir <- (pz + 1):(h + pz + 1)
+        ord.resid <- sort(resid[order(abs(resid))][ir])
+        xt <- ir/(n - p)
+        spar[,i] <- rq(ord.resid ~ xt)$coef[2]
+        dens[,i] <- 1/spar[,i]
+    }
+    else if (se == "nid") {
+        h <- bandwidth.rq(tau, n, hs = hs)
+        if (tau + h > 1) 
+            stop("tau + h > 1:  error in summary.rq")
+        if (tau - h < 0) 
+            stop("tau - h < 0:  error in summary.rq")
+		
+        bhi <- update(object, tau = tau + h)
+        blo <- update(object, tau = tau - h)
+        dyhat <- predict(bhi, raw = TRUE) - predict(blo, raw = TRUE)
+        if (any(dyhat <= 0)) 
+            warning(paste(sum(dyhat <= 0), "non-positive fis"))
+        f <- pmax(0, (2 * h)/(dyhat - eps))
+        dens[,i] <- f
+		spar[,i] <- 1/f
+    }
+    else if (se == "ker") {
+        h <- bandwidth.rq(tau, n, hs = hs)
+        if (tau + h > 1) 
+            stop("tau + h > 1:  error in summary.rq")
+        if (tau - h < 0) 
+            stop("tau - h < 0:  error in summary.rq")
+        uhat <- c(residm[,i])
+        h <- (qnorm(tau + h) - qnorm(tau - h)) * min(sqrt(var(uhat)), 
+            (quantile(uhat, 0.75) - quantile(uhat, 0.25))/1.34)
+        f <- dnorm(uhat/h)/h
+        dens[,i] <- f
+		spar[,i] <- 1/f
+    }
+}# loop i
+
+    return(list(density = dens, sparsity = spar, bandwidth = h))
+}
+
+sparsity.rq <- function(object, se = "nid", hs = TRUE){
+    mt <- terms(object)
+    m <- model.frame(object)
+    y <- model.response(m)
+    x <- model.matrix(mt, m, contrasts = object$contrasts)
+    wt <- model.weights(object$model)
+    taus <- object$tau
+    nq <- length(taus)
+    eps <- .Machine$double.eps^(2/3)
+
+    vnames <- dimnames(x)[[2]]
+    residm <- as.matrix(object$residuals)
+    n <- length(y)
+    p <- nrow(as.matrix(object$coef))
+    rdf <- n - p
+    if (!is.null(wt)) {
+        residm <- residm * wt
+        x <- x * wt
+        y <- y * wt
+    }
+    if (is.null(se)) {
+        if (n < 1001) 
+            se <- "rank"
+        else se <- "nid"
+    }
+
+spar <- dens <- matrix(NA, n, nq)
+for(i in 1:nq){
+
+tau <- taus[i]
+
+    if (se == "iid") {
+		resid <- residm[,i]
+		pz <- sum(abs(resid) < eps)
+        h <- max(p + 1, ceiling(n * bandwidth.rq(tau, n, hs = hs)))
+        ir <- (pz + 1):(h + pz + 1)
+        ord.resid <- sort(resid[order(abs(resid))][ir])
+        xt <- ir/(n - p)
+        spar[,i] <- rq(ord.resid ~ xt)$coef[2]
+        dens[,i] <- 1/spar[,i]
+    }
+    else if (se == "nid") {
+        h <- bandwidth.rq(tau, n, hs = hs)
+        if (tau + h > 1) 
+            stop("tau + h > 1:  error in summary.rq")
+        if (tau - h < 0) 
+            stop("tau - h < 0:  error in summary.rq")
+        bhi <- rq.fit.fnb(x, y, tau = tau + h)$coef
+        blo <- rq.fit.fnb(x, y, tau = tau - h)$coef
+        dyhat <- x %*% (bhi - blo)
+        if (any(dyhat <= 0)) 
+            warning(paste(sum(dyhat <= 0), "non-positive fis"))
+        f <- pmax(0, (2 * h)/(dyhat - eps))
+        dens[,i] <- f
+	  spar[,i] <- 1/f
+    }
+    else if (se == "ker") {
+        h <- bandwidth.rq(tau, n, hs = hs)
+        if (tau + h > 1) 
+            stop("tau + h > 1:  error in summary.rq")
+        if (tau - h < 0) 
+            stop("tau - h < 0:  error in summary.rq")
+        uhat <- c(residm[,i])
+        h <- (qnorm(tau + h) - qnorm(tau - h)) * min(sqrt(var(uhat)), 
+            (quantile(uhat, 0.75) - quantile(uhat, 0.25))/1.34)
+        f <- dnorm(uhat/h)/h
+        dens[,i] <- f
+	  spar[,i] <- 1/f
+    }
+}# loop i
+
+    return(list(density = dens, sparsity = spar, bandwidth = h))
+}
+
+d1bc <- function(x, lambda){
+zero <- rep(0, length(x))
+g1 <- deriv(~ (lambda*x + 1)^(1/lambda), "x", func = function(x,lambda){})
+g2 <- deriv(~ exp(x), "x", func = function(x){})
+    if (lambda != 0) {
+        val <- as.numeric(attributes(g1(x, lambda))$gradient)
+		val <- ifelse(lambda * x + 1 > 0, val, zero)
+    }
+    else {
+        val <- exp(x)
+    }
+    return(val)
+}
+
+d2bc <- function(x, lambda){
+zero <- rep(0, length(x))
+g1 <- deriv(~ (lambda*x + 1)^(1/lambda), "lambda", func = function(lambda,x){})
+    if (lambda != 0) {
+        val <- as.numeric(attributes(g1(lambda,x))$gradient)
+    }
+    else {
+        val <- zero
+    }
+    return(val)
+}
+
+d1mcjI <- function(x, lambda, symm, bounded){
+
+if(bounded){
+	if(symm){
+	g1 <- deriv(~ (lambda*x + sqrt(1 + (lambda*x)^2))^(1/lambda)/(1 + (lambda*x + sqrt(1 + (lambda*x)^2))^(1/lambda)), "x", func = function(x, lambda){})
+	g2 <- deriv(~ exp(x)/(1+exp(x)), "x", func = function(x){})
+		if(lambda != 0){
+			val <- as.numeric(attributes(g1(x, lambda))$gradient)
+		} else {
+			val <- as.numeric(attributes(g2(x))$gradient)
+		}
+	} else {
+	g1 <- deriv(~ 1 - exp(-(lambda*x + sqrt(1 + (lambda*x)^2))^(1/lambda)), "x", func = function(x, lambda){})
+	g2 <- deriv(~ 1 - exp(-exp(x)), "x", func = function(x){})
+		if(lambda != 0){
+			val <- as.numeric(attributes(g1(x, lambda))$gradient)
+		} else {
+			val <- as.numeric(attributes(g2(x))$gradient)
+		}
+	}
+} else {
+	if(symm){
+	g1 <- deriv(~ (lambda*x + sqrt(1 + (lambda*x)^2))^(1/lambda), "x", func = function(x, lambda){})
+	g2 <- deriv(~ exp(x), "x", func = function(x){})
+		if (lambda != 0) {
+			val <- as.numeric(attributes(g1(x, lambda))$gradient)
+		} else {
+			val <- exp(x)
+		}
+	} else {
+	g1 <- deriv(~ exp((lambda*x + sqrt(1 + (lambda*x)^2))^(1/lambda)) - 1, "x", func = function(x, lambda){})
+	g2 <- deriv(~ exp(exp(x)) - 1, "x", func = function(x){})
+		if (lambda != 0) {
+			val <- as.numeric(attributes(g1(x, lambda))$gradient)
+		} else {
+			val <- as.numeric(attributes(g2(x))$gradient)
+		}
+	}
+}
+
+return(val)
+
+}
+
+d2mcjI <- function(x, lambda, symm, bounded){
+zero <- rep(0, length(x))
+if(bounded){
+	if(symm){
+	g1 <- deriv(~ (lambda*x + sqrt(1 + (lambda*x)^2))^(1/lambda)/(1 + (lambda*x + sqrt(1 + (lambda*x)^2))^(1/lambda)), "lambda", func = function(lambda, x){})
+	g2 <- deriv(~ exp(x)/(1+exp(x)), "x", func = function(x){})
+		if(lambda != 0){
+			val <- as.numeric(attributes(g1(lambda, x))$gradient)
+		} else {
+			val <- zero
+		}
+	} else {
+	g1 <- deriv(~ 1 - exp(-(lambda*x + sqrt(1 + (lambda*x)^2))^(1/lambda)), "lambda", func = function(lambda, x){})
+	g2 <- deriv(~ 1 - exp(-exp(x)), "x", func = function(x){})
+		if(lambda != 0){
+			val <- as.numeric(attributes(g1(lambda, x))$gradient)
+		} else {
+			val <- zero
+		}
+	}
+} else {
+	if(symm){
+	g1 <- deriv(~ (lambda*x + sqrt(1 + (lambda*x)^2))^(1/lambda), "lambda", func = function(lambda, x){})
+	g2 <- deriv(~ exp(x), "x", func = function(x){})
+		if (lambda != 0) {
+			val <- as.numeric(attributes(g1(lambda, x))$gradient)
+		} else {
+			val <- zero
+		}
+	} else {
+		g1 <- deriv(~ exp((lambda*x + sqrt(1 + (lambda*x)^2))^(1/lambda)) - 1, "lambda", func = function(lambda, x){})
+		g2 <- deriv(~ exp(exp(x)) - 1, "x", func = function(x){})
+		if (lambda != 0) {
+			val <- as.numeric(attributes(g1(lambda, x))$gradient)
+		} else {
+			val <- zero
+		}
+	}
+}
+
+return(val)
+
+}
+
+d1ao <- function(x, lambda, symm){
+zero <- rep(0, length(x))
+if(symm){
+g1 <- deriv(~ (1 + lambda*x/2)^(1/lambda)/((1 + lambda*x/2)^(1/lambda) + (1 - lambda*x/2)^(1/lambda)), "x", func = function(x, lambda){})
+g2 <- deriv(~ exp(x)/(1+exp(x)), "x", func = function(x){})
+	if(lambda != 0){
+		#y <- (lambda * x/2)
+		#a <- (1 + y)^(1/lambda)
+		#b <- (1 - y)^(1/lambda)
+		#aprime <- (1 + y)^(1/lambda - 1)
+		#bprime <- (1 - y)^(1/lambda - 1)
+		#val <- 0.5*aprime/(a + b) - (a * (0.5*aprime - 0.5*bprime))/(a + b)^2
+		val <- as.numeric(attributes(g1(x, lambda))$gradient)
+		val <- ifelse(abs(lambda * x/2) < 1, val, zero)
+	} else {
+		#val <- exp(-x)/(1 + exp(-x))^2
+		val <- as.numeric(attributes(g2(x))$gradient)
+	}
+} else {
+g1 <- deriv(~ 1 - (1 + lambda*exp(x))^(-1/lambda), "x", func = function(x, lambda){})
+g2 <- deriv(~ 1 - exp(-exp(x)), "x", func = function(x){})
+	if(lambda != 0){
+		#y <- lambda * exp(x)
+		#val <- ifelse(y > -1, exp(x) * (1 + y)^(-1/lambda - 1), zero)
+		val <- as.numeric(attributes(g1(x, lambda))$gradient)
+		val <- ifelse(lambda * exp(x) > -1, val, zero)
+		} else {
+		#val <- exp(x - exp(x))
+		val <- as.numeric(attributes(g2(x))$gradient)
+	}
+}
+
+return(val)
+
+}
+
+d2ao <- function(x, lambda, symm){
+zero <- rep(0, length(x))
+if(symm){
+g1 <- deriv(~ (1 + lambda*x/2)^(1/lambda)/((1 + lambda*x/2)^(1/lambda) + (1 - lambda*x/2)^(1/lambda)), "lambda", func = function(lambda, x){})
+	if(lambda != 0){
+		val <- as.numeric(attributes(g1(lambda, x))$gradient)
+		val <- ifelse(abs(lambda * x/2) < 1, val, zero)
+	} else {
+		val <- zero
+	}
+} else {
+g1 <- deriv(~ 1 - (1 + lambda*exp(x))^(-1/lambda), "lambda", func = function(lambda, x){})
+	if(lambda != 0){
+		val <- as.numeric(attributes(g1(lambda, x))$gradient)
+		val <- ifelse(lambda * exp(x) > -1, val, zero)
+		} else {
+		val <- zero
+	}
+}
+
+return(val)
+
+}
+
+se.rqt <- function(object, se = "nid"){
+
+
+tau <- object$tau
+nq <- length(tau)
+tsf <- object$tsf
+symm <- attributes(tsf)$symm
+bounded <- attributes(tsf)$bounded
+isBounded <- attributes(tsf)$isBounded
+if (tsf == "mcjII") {
+	etahat <- object$eta
+} else {
+	lambdahat <- object$lambda
+}
+
+if(isBounded) {
+	fis <- sparsity.rqt(object, se = se)$density
+	} else {
+		fis <- NULL
+		for(j in 1:nq) fis <- cbind(fis, as.numeric(sparsity.rq(object[[j]], se = se)$density))
+}
+
+betahat <- as.matrix(object$coefficients)
+linpred <- predict(object, raw = FALSE)
+
+x <- object$x
+n <- nrow(x)
+p <- ncol(x)
+
+g1 <- g2 <- matrix(NA, n, nq)
+dbl <- matrix(NA, p, nq)
+V <- array(NA, dim = c(p + 1, p + 1, nq))
+
+for(j in 1:nq){
+	g1[,j] <- switch(tsf,
+		mcjI = d1mcjI(linpred[,j], lambdahat[j], symm, bounded),
+		bc = d1bc(linpred[,j], lambdahat[j]),
+		ao = d1ao(linpred[,j],lambdahat[j], symm)
+		)
+
+	g2[,j] <- switch(tsf,
+		mcjI = d2mcjI(linpred[,j], lambdahat[j], symm, bounded),
+		bc = d2bc(linpred[,j], lambdahat[j]),
+		ao = d2ao(linpred[,j], lambdahat[j], symm)
+		)
+
+	f0 <- as.numeric(fis[,j]/g1[,j])
+	
+	dbl[,j] <- - solve(crossprod(sqrt(f0 * g1[,j]) * x)/n) %*% matrix(colMeans((f0 * g2[,j] * x)))
+
+	A <- rbind(cbind(diag(p), matrix(0, p, p), rep(0, p)),
+		c(rep(0,p),dbl[,j],1))
+
+	d2 <- cbind(g1[,j] * x, g2[,j])
+	d <- cbind(x,d2)
+	H <- A %*% (t(f0*d) %*% d2)/n
+	Hinv <- try(chol2inv(chol(H)), silent = TRUE)
+	if(class(Hinv) == "try-error") Hinv <- try(solve(H), silent = TRUE)
+	if(class(Hinv) == "try-error") Hinv <- matrix(NA, p + 1, p + 1)
+
+	L <- tau[j] * (1 - tau[j]) * A %*% (crossprod(d)/n^2) %*% t(A)
+
+	V[,,j] <- Hinv %*% L %*% t(Hinv)
+}
+
+#if(nq == 1) V <- drop(V)
+
+return(V)
+
+}
+
+##################################################
+### Marginal effects
+##################################################
+
+# Generic
+
+maref <- function(...) UseMethod("maref")
+
+# rqt object
+
+maref.rqt <- function(object, newdata, index = 2, index.extra = NULL, ...){
+
+tau <- object$tau
+nq <- length(tau)
+tsf <- object$tsf
+symm <- attributes(tsf)$symm
+bounded <- attributes(tsf)$bounded
+isBounded <- attributes(tsf)$isBounded
+if (tsf == "mcjII") {
+	etahat <- object$eta
+}
+else {
+	lambdahat <- object$lambda
+}
+
+betahat <- as.matrix(object$coefficients)
+linpred <- predict(object, newdata, raw = FALSE)
+
+if(missing(newdata)) {x <- object$x}
+	else {x <- attr(linpred, "x")}
+n <- nrow(x)
+
+if(identical(x[,index], rep(1,n))) return(kronecker(matrix(betahat[index,],nrow = 1), rep(1,n)))
+
+if(!is.null(index.extra)){
+	if(index %in% index.extra) warning(paste("Index", index, "appears twice as 'index' and in 'index.extra'."))
+	param <- matrix(NA, n, nq)
+	for(i in 1:nq){
+		tmp <- sweep(as.matrix(x[,index.extra]), 2, betahat[index.extra,i], "*")
+		param[,i] <- betahat[index,i] + rowSums(tmp)
+	}
+} else {param <- matrix(betahat[index,], nrow = 1)}
+
+val <- matrix(NA, n, nq)
+
+for(j in 1:nq)(
+val[,j] <- switch(tsf,
+	mcjI = marefmcjI(linpred[,j], param[,j], lambdahat[j], symm, bounded),
+	bc = marefbc(linpred[,j], param[,j], lambdahat[j]),
+	ao = marefao(linpred[,j], param[,j], lambdahat[j], symm),
+	)
+)
+
+return(val)
+
+}
+
+marefbc <- function(x, param, lambda){
+
+if(lambda != 0){
+	val <- param * (lambda * x + 1)^(1/lambda - 1)
+} else {
+	val <- param * exp(x)
+}
+
+return(val)
+}
+
+marefao <- function(x, param, lambda, symm){
+
+if(symm){
+	if(lambda != 0){
+		y <- (lambda * x/2)
+		a <- (1 + y)^(1/lambda)
+		b <- (1 - y)^(1/lambda)
+		aprime <- 1/2*param * (1 + y)^(1/lambda - 1)
+		bprime <- -1/2*param * (1 - y)^(1/lambda - 1)
+		val <- (b/aprime^2 - bprime/a)/(1 + b/a)^2
+	} else {
+		val <- (param * exp(-x))/(1 + exp(-x))^2
+	}
+} else {
+	if(lambda != 0){
+		y <- lambda * exp(x)
+		val <- (param * exp(x)) * (1 + y)^(-1/lambda - 1)
+	} else {
+		val <- param * exp(x - exp(x))
+	}
+}
+
+return(val)
+}
+
+marefmcjI <- function(x, param, lambda, symm, bounded){
+
+if(bounded){
+	if(symm){
+		if(lambda != 0){
+			y <- lambda*x + sqrt(1 + (lambda*x)^2)
+			a <- 1/lambda * (y^(-1/lambda - 1)) * (lambda * param + (x*param*lambda^2)/sqrt(1 + (lambda*x)^2))
+			b <- (1 + y^(-1/lambda))^2
+			val <- a/b
+		} else {
+			val <- (param * exp(-x))/(1 + exp(-x))^2
+		}
+	} else {
+		if(lambda != 0){
+			y <- lambda*x + sqrt(1 + (lambda*x)^2)
+			val <- 1/lambda * (y^(1/lambda - 1)) * (lambda * param + (x*param*lambda^2)/sqrt(1 + (lambda*x)^2)) * (exp(-y^(1/lambda)))
+		} else {
+			val <- param * exp(x - exp(x))	
+		}
+	}
+} else {
+	if(symm){
+		if (lambda != 0) {
+			y <- lambda*x + sqrt(1 + (lambda*x)^2)
+			val <- 1/lambda * (y^(1/lambda - 1)) * (lambda*param + (x*param*lambda^2)/sqrt(1 + (lambda*x)^2))
+		} else {
+			val <- param * exp(x)
+		}
+	} else {
+		if (lambda != 0) {
+			y <- lambda*x + sqrt(1 + (lambda*x)^2)
+			val <- 1/lambda * (y^(1/lambda - 1)) * (lambda*param + (x*param*lambda^2)/sqrt(1 + (lambda*x)^2))
+			val <- val * exp(y^(1/lambda))
+		} else {
+			val <- param * exp(x)
+			val <- val * exp(exp(x))
+		}
+	}
+}
+
+return(val)
+
+}
+
 
 ##################################################
 ### Restricted quantiles
@@ -1341,137 +1909,6 @@ if(missing(newdata)) {x <- object$x} else {
 return(x %*% betahat)
 
 }
-
-
-##################################################
-### Marginal effects
-##################################################
-
-# Generic
-
-maref <- function(...) UseMethod("maref")
-
-# rqt object
-
-maref.rqt <- function(object, newdata, index = 2, index.extra = NULL, ...){
-
-tau <- object$tau
-nq <- length(tau)
-tsf <- object$tsf
-symm <- attributes(tsf)$symm
-bounded <- attributes(tsf)$bounded
-isBounded <- attributes(tsf)$isBounded
-if (tsf == "mcjII") {
-	etahat <- object$eta
-}
-else {
-	lambdahat <- object$lambda
-}
-
-betahat <- as.matrix(object$coefficients)
-linpred <- predict(object, newdata, raw = FALSE)
-
-if(missing(newdata)) {x <- object$x}
-	else {x <- attr(linpred, "x")}
-n <- nrow(x)
-
-if(identical(x[,index], rep(1,n))) return(kronecker(matrix(betahat[index,],nrow = 1), rep(1,n)))
-
-if(!is.null(index.extra)){
-	if(index %in% index.extra) warning(paste("Index", index, "appears twice as 'index' and in 'index.extra'."))
-	param <- matrix(NA, n, nq)
-	for(i in 1:nq){
-		tmp <- sweep(as.matrix(x[,index.extra]), 2, betahat[index.extra,i], "*")
-		param[,i] <- betahat[index,i] + rowSums(tmp)
-	}
-} else {param <- matrix(betahat[index,], nrow = 1)}
-
-val <- matrix(NA, n, nq)
-
-for(j in 1:nq)(
-val[,j] <- switch(tsf,
-	mcjI = marefmcjI(linpred[,j], param[,j], lambdahat[j], symm, bounded),
-	bc = marefbc(linpred[,j], param[,j], lambdahat[j]),
-	ao = marefao(linpred[,j], param[,j], lambdahat[j], symm),
-	)
-)
-
-return(val)
-
-}
-
-marefbc <- function(x, param, lambda){
-
-if(lambda != 0){
-	val <- param * (lambda * x + 1)^(1/lambda - 1)
-} else {
-	val <- param * exp(x)
-}
-
-return(val)
-}
-
-marefao <- function(x, param, lambda, symm){
-
-if(symm){
-	if(lambda != 0){
-		y <- (lambda * x/2)
-		a <- (1 + y)^(1/lambda)
-		b <- (1 - y)^(1/lambda)
-		aprime <- 1/2*param * (1 + y)^(1/lambda - 1)
-		bprime <- -1/2*param * (1 - y)^(1/lambda - 1)
-		val <- (b/aprime^2 - bprime/a)/(1 + b/a)^2
-	} else {
-		val <- (param * exp(-x))/(1 + exp(-x))^2
-	}
-} else {
-	if(lambda != 0){
-		y <- lambda * exp(x)
-		val <- (param * exp(x)) * (1 + y)^(-1/lambda - 1)
-	} else {
-		val <- 1 + param * exp(x - exp(x))
-	}
-}
-
-return(val)
-}
-
-marefmcjI <- function(x, param, lambda, symm, bounded){
-
-if(bounded){
-	if(symm){
-		if(lambda != 0){
-			y <- lambda*x + sqrt(1 + (lambda*x)^2)
-			a <- 1/lambda * (y^(-1/lambda - 1)) * (lambda * param + 1/2*(1 + (lambda*x)^2)^(-1/2) * (2*x*param*lambda^2))
-			b <- (1 + y^(-1/lambda))^2
-			val <- a/b
-		} else {
-			val <- (param * exp(-x))/(1 + exp(-x))^2
-		}
-	} else {
-		if(lambda != 0){
-			y <- lambda*x + sqrt(1 + (lambda*x)^2)
-			val <- 1/lambda * (y^(1/lambda - 1)) * (lambda * param + 1/2*(1 + (lambda*x)^2)^(-1/2) * (2*x*param*lambda^2)) * (exp(-y^(1/lambda)))
-		} else {
-			val <- 1 + param * exp(x - exp(x))	
-		}
-	}
-} else {
-	if (lambda != 0) {
-		y <- lambda*x + sqrt(1 + (lambda*x)^2)
-		val <- 1/lambda * (y^(1/lambda - 1)) * (lambda*param + 1/2*(1 + (lambda*x)^2)^(-1/2) * (2*x*param*lambda^2))
-	} else {
-		val <- param*exp(x)
-	}
-	if (!symm) {
-		val <- val * exp(val)
-	}
-}
-
-return(val)
-
-}
-
 
 ##################################################
 ### Multiple imputation

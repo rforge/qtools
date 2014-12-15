@@ -2,11 +2,11 @@
 \alias{predict.rrq}
 
 \title{
-Predictions from Quantile Regression Transformation Models
+Predictions from Restricted Quantile Regression Models
 }
 
 \description{
-This function computes predictions based on fitted quantile regression transformation models.
+This function computes predictions based on fitted restricted quantile regression models.
 }
 
 \usage{

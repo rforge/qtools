@@ -33,7 +33,7 @@ see argument \code{sim} in \code{\link{boot}}.
 see argument \code{stype} in \code{\link{boot}}.
 }
   \item{conditional}{
-logical flag. If \code{FALSE} (default), unconditional inference is carried out.
+logical flag. If \code{TRUE}, the transformation parameter is assumed to be known and conditional inference is carried out.
 }
   \item{\dots}{
 if \code{conditional = TRUE}, additional arguments for \code{\link{summary.rq}} in package \code{quantreg}. If \code{conditional = FALSE}, additional arguments for \code{\link{boot}} in package \code{boot}.

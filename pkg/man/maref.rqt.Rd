@@ -36,9 +36,9 @@ not used.
 }
 
 \details{
-Given the general model \emph{Q(h(response)) = Xb}, where \emph{Q} is the conditional quantile function, \emph{X} a design matrix with \emph{p} columns, and \emph{h} is a one- or two-parameter transformation with inverse \emph{hinv}, \code{maref} allows computing the marginal effect:
+Given the general model \emph{Q(h(response)|X) = Xb}, where \emph{Q} is the conditional quantile function, \emph{X} a design matrix with \emph{p} columns, and \emph{h} is a one- or two-parameter transformation with inverse \emph{hinv}, \code{maref} allows computing the marginal effect:
 
-d\emph{Q(hinv(response))}/d\emph{x[j]}
+d\emph{Q(response|X)}/d\emph{x[j]}
 
 where \emph{j} specifies the covariate in the design matrix with respect to which the marginal effect is to be computed and is given in the argument \code{index}. Since the model may contain interactions with \emph{x[j]}, additional terms in the matrix \emph{X} to be included in the computation are given in the argument \code{index.extra}. See the examples below.
 }

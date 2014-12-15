@@ -2,13 +2,21 @@
 \title{Internal Qtools objects}
 \alias{.First.lib}
 \alias{.Last.lib}
+\alias{d1bc}
+\alias{d1ao}
+\alias{d1mcjI}
+\alias{d2bc}
+\alias{d2ao}
+\alias{d2mcjI}
+\alias{sparsity}
+\alias{se.rqt}
 \alias{marefbc}
 \alias{marefao}
 \alias{marefmcjI}
 \alias{boot.fun}
-\alias{powerbasis}
-\alias{invpowerbasis}
-\alias{powrecbasis}
+\alias{powerbase}
+\alias{invpowerbase}
+\alias{powrecbase}
 \alias{map}
 \alias{invmap}
 \alias{rcLoss}
