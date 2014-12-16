@@ -5,7 +5,7 @@
 \alias{tsrq}
 
 \title{
-Quantile Regression Tranformation Models
+Quantile Regression Transformation Models
 }
 \description{
 These functions are used to fit quantile regression transformation models.
@@ -14,8 +14,8 @@ These functions are used to fit quantile regression transformation models.
 tsrq(formula, tsf = "mcjI", symm = TRUE, bounded = FALSE, lambda = NULL,
 	conditional = FALSE, tau = 0.5, data, subset, weights, na.action,
 	method = "fn", ...)
-tsrq2(formula, bounded = FALSE, lambda = NULL, delta = NULL, tau = 0.5,
-	conditional = FALSE, data, subset, weights, na.action, method = "fn", ...)
+tsrq2(formula, bounded = FALSE, lambda = NULL, delta = NULL, conditional = FALSE,
+	tau = 0.5, data, subset, weights, na.action, method = "fn", ...)
 rcrq(formula, tsf = "mcjI", symm = TRUE, bounded = FALSE, lambda = NULL,
 	tau = 0.5, data, subset, weights, na.action, method = "fn", ...)
 nlrq2(formula, par = NULL, bounded = FALSE, tau = 0.5, data,
@@ -121,10 +121,89 @@ Marco Geraci
 }
 
 \examples{
+
+###########################################################
+## Example 1 - singly bounded (from Geraci and Jones, 2014)
+
+data(trees)
+
+\dontrun{
+
+dx <- 0.01
+
+lambda0 <- boxcox(Volume ~ log(Height), data = trees,
+	lambda = seq(-0.9, 0.5, by = dx))
+lambda0 <- lambda0$x[which.max(lambda0$y)]
+trees$z <- bc(trees$Volume,lambda0)
+trees$y <- trees$Volume
+trees$x <- log(trees$Height)
+trees$x <- trees$x - mean(log(trees$Height))
+
+fit.lm <- lm(z ~ x, data = trees)
+newd <- data.frame(x = log(seq(min(trees$Height),
+	max(trees$Height), by = 0.1)))
+newd$x <- newd$x - mean(log(trees$Height))
+ylm <- invbc(predict(fit.lm, newdata = newd), lambda0)
+
+lambdas <- list(bc = seq(-10, 10, by=dx),
+	mcjIs = seq(0,10,by = dx), mcjIa = seq(0,20,by = dx))
+
+taus <- 1:3/4
+fit0 <- tsrq(y ~ x, tsf = "bc", symm = FALSE, data = trees,
+	lambda = lambdas$bc, tau = taus)
+fit1 <- tsrq(y ~ x, tsf = "mcjI", symm = TRUE, bounded = FALSE,
+	data = trees, lambda = lambdas$mcjIs, tau = taus)
+fit2 <- tsrq(y ~ x, tsf = "mcjI", symm = FALSE, bounded = FALSE,
+	data = trees, lambda = lambdas$mcjIa, tau = taus)
+
+
+par(mfrow = c(1,3), mar = c(7.1, 7.1, 5.1, 2.1), mgp = c(5, 2, 0))
+
+cx.lab <- 2.5
+cx.ax <- 2
+lw <- 2
+cx <- 2
+xb <- "log(Height)"
+yb <- "Volume"
+xl <- range(trees$x)
+yl <- c(5,80)
+
+yhat <- predict(fit0, newdata = newd)
+plot(y ~ x,data = trees, xlim = xl, ylim = yl, main = "Box-Cox",
+	cex.lab = cx.lab, cex.axis = cx.ax, cex.main = cx.lab,
+	cex = cx, xlab = xb, ylab = yb)
+lines(newd$x, yhat[,1], lwd = lw)
+lines(newd$x, yhat[,2], lwd = lw)
+lines(newd$x, yhat[,3], lwd = lw)
+lines(newd$x, ylm, lwd = lw, lty = 2)
+
+yhat <- predict(fit1, newdata = newd)
+plot(y ~ x,data = trees, xlim = xl, ylim = yl, main = "Proposal I (symmetric)",
+	cex.lab = cx.lab, cex.axis = cx.ax, cex.main = cx.lab,
+	cex = cx, xlab = xb, ylab = yb)
+lines(newd$x, yhat[,1], lwd = lw)
+lines(newd$x, yhat[,2], lwd = lw)
+lines(newd$x, yhat[,3], lwd = lw)
+lines(newd$x, ylm, lwd = lw, lty = 2)
+
+yhat <- predict(fit2, newdata = newd)
+plot(y ~ x, data = trees, xlim = xl, ylim = yl, main = "Proposal I (asymmetric)",
+	cex.lab = cx.lab, cex.axis = cx.ax, cex.main = cx.lab,
+	cex = cx, xlab = xb, ylab = yb)
+lines(newd$x, yhat[,1], lwd = lw)
+lines(newd$x, yhat[,2], lwd = lw)
+lines(newd$x, yhat[,3], lwd = lw)
+lines(newd$x, ylm, lwd = lw, lty = 2)
+}
+
+###########################################################
+## Example 2 - doubly bounded
+
 data(Chemistry)
 
 Chemistry$gcse_gr <- cut(Chemistry$gcse, c(0,seq(4,8,by=0.5)))
-with(Chemistry, plot(score ~ gcse_gr, xlab = "GCSE score", ylab = "A-level Chemistry score"))
+with(Chemistry, plot(score ~ gcse_gr, xlab = "GCSE score",
+	ylab = "A-level Chemistry score"))
 
 \dontrun{
 
@@ -133,11 +212,12 @@ set.seed(178)
 chemsub <- Chemistry[sample(1:nrow(Chemistry), 2000), ]
 
 # Fit symmetric Aranda-Ordaz quantile 0.9
-tsrq(score ~ gcse, tsf = "ao", symm = TRUE, lambda = seq(0,2,by=0.01), tau = 0.9, data = chemsub)
+tsrq(score ~ gcse, tsf = "ao", symm = TRUE, lambda = seq(0,2,by=0.01),
+	tau = 0.9, data = chemsub)
 
 # Fit symmetric Proposal I quantile 0.9
-tsrq(score ~ gcse, tsf = "mcjI", symm = TRUE, bounded = TRUE, lambda = seq(0,2,by=0.01),
-	tau = 0.9, data = chemsub)
+tsrq(score ~ gcse, tsf = "mcjI", symm = TRUE, bounded = TRUE,
+	lambda = seq(0,2,by=0.01), tau = 0.9, data = chemsub)
 
 # Fit Proposal II quantile 0.9 (Nelder-Mead)
 nlrq2(score ~ gcse, bounded = TRUE, tau = 0.9, data = chemsub)
@@ -147,6 +227,122 @@ nlrq2(score ~ gcse, bounded = TRUE, tau = 0.9, data = chemsub)
 tsrq2(score ~ gcse, bounded = TRUE, lambda = seq(0, 2, by = 0.1),
 	delta = seq(0, 2, by = 0.1), tau = 0.9, data = chemsub)
 
+}
+
+###########################################################
+## Example 3 - doubly bounded
+
+data(labor)
+
+new <- labor
+new$y <- new$pain
+new$x <- (new$time-30)/30
+new$x_gr <- as.factor(new$x)
+
+par(mfrow = c(2,2), mai = c(1.3,1.3,0.5,0.5), mgp = c(5, 2, 0))
+
+cx.lab <- 2.5
+cx.ax <- 2.5
+cx <- 2.5
+yl <- c(0,0.06)
+
+hist(new$y[new$treatment == 1], xlab = "Pain score", main = "Treated",
+	cex.lab = cx.lab, cex.axis = cx.ax, cex.main = cx.lab, axes = TRUE,
+	freq = FALSE, ylim = yl)
+
+plot(y ~ x_gr, new, subset = new$treatment == 1, xlab = "Time (min)",
+	ylab = "Pain score", cex.lab = cx.lab, cex.axis = cx.ax,
+	cex.main = cx.lab, axes = FALSE, range = 0)
+axis(1, at = 1:6, labels = c(0:5)*30 + 30, cex.axis = 2)
+axis(2, cex.axis = cx.lab)
+box()
+
+hist(new$y[new$treatment == 0], xlab = "Pain score", main = "Placebo",
+	cex.lab = cx.lab, cex.axis = cx.ax, cex.main = cx.lab,
+	axes = TRUE, freq = FALSE, ylim = yl)
+
+plot(y ~ x_gr, new, subset = new$treatment == 0, xlab = "Time (min)",
+	ylab = "Pain score", cex.lab = cx.lab, cex.axis = cx.ax,
+	cex.main = cx.lab, axes = FALSE, range = 0)
+axis(1, at = 1:6, labels = (0:5)*30 + 30, cex.axis = 2)
+axis(2, cex.axis = cx.lab)
+box()
+
+#
+
+\dontrun{
+
+taus <- c(1:3/4)
+ls <- seq(0,3.5,by=0.1)
+
+fit.aos <- tsrq(y ~ x*treatment, tsf = "ao", symm = TRUE, bounded = TRUE,
+	data = new, tau = taus, lambda = ls)
+fit.aoa <- tsrq(y ~ x*treatment, tsf = "ao", symm = FALSE, bounded = TRUE,
+	data = new, tau = taus, lambda = ls)
+fit.mcjs <- tsrq(y ~ x*treatment, tsf = "mcjI", symm = TRUE, bounded = TRUE,
+	data = new, tau = taus, lambda = ls)
+fit.mcja <- tsrq(y ~ x*treatment, tsf = "mcjI", symm = FALSE, bounded = TRUE,
+	data = new, tau = taus, lambda = ls)
+fit.mcj2 <- tsrq2(y ~ x*treatment, bounded = TRUE, data = new, tau = taus,
+	lambda = seq(0,2,by=0.1), delta = seq(0,1.5,by=0.3))
+fit.nlrq <- nlrq2(y ~ x*treatment, par = coef(fit.mcj2, all = TRUE)[,1],
+	bounded = TRUE, data = new, tau = taus)
+
+sel <- 0
+selx <- if(sel == 1) "a" else "b"
+x <- new$x
+nd <- data.frame(x = seq(min(x),max(x),length=200), treatment = sel)
+xx <- nd$x+1
+
+par(mfrow = c(2,2), mar = c(7.1, 7.1, 5.1, 2.1), mgp = c(5, 2, 0))
+cx.lab <- 3
+cx.ax <- 2
+lw <- 3
+cx <- 1
+
+fit <- fit.aos
+yhat <- predict(fit, newdata = nd)
+
+plot(y ~ x_gr, new, subset = new$treatment == sel, xlab = "",
+	ylab = "Pain score", cex.lab = cx.lab, cex.axis = cx.ax, cex.main = cx.lab,
+	axes = FALSE, main = "Aranda-Ordaz (s)", range = 0, col = grey(4/5))
+apply(yhat, 2, function(y,x) lines(x, y, lwd = lw), x = xx)
+axis(1, at = 1:6, labels = (0:5)*30 + 30, cex.axis = cx.lab)
+axis(2, at = c(0, 25, 50, 75, 100), cex.axis = cx.lab)
+box()
+
+fit <- fit.aoa
+yhat <- predict(fit, newdata = nd)
+
+plot(y ~ x_gr, new, subset = new$treatment == sel, xlab = "", ylab = "",
+	cex.lab = cx.lab, cex.axis = cx.ax, cex.main = cx.lab, axes = FALSE,
+	main = "Aranda-Ordaz (a)", range = 0, col = grey(4/5))
+apply(yhat, 2, function(y,x) lines(x, y, lwd = lw), x = xx)
+axis(1, at = 1:6, labels = (0:5)*30 + 30, cex.axis = cx.lab)
+axis(2, at = c(0, 25, 50, 75, 100), cex.axis = cx.lab)
+box()
+
+fit <- fit.mcjs
+yhat <- predict(fit, newdata = nd)
+
+plot(y ~ x_gr, new, subset = new$treatment == sel, xlab = "Time (min)",
+	ylab = "Pain score", cex.lab = cx.lab, cex.axis = cx.ax, cex.main = cx.lab,
+	axes = FALSE, main = "Proposal I (s)", range = 0, col = grey(4/5))
+apply(yhat, 2, function(y,x) lines(x, y, lwd = lw), x = xx)
+axis(1, at = 1:6, labels = (0:5)*30 + 30, cex.axis = cx.lab)
+axis(2, at = c(0, 25, 50, 75, 100), cex.axis = cx.lab)
+box()
+
+fit <- fit.mcj2
+yhat <- predict(fit, newdata = nd)
+
+plot(y ~ x_gr, new, subset = new$treatment == sel, xlab = "Time (min)",
+	ylab = "", cex.lab = cx.lab, cex.axis = cx.ax, cex.main = cx.lab,
+	axes = FALSE, main = "Proposal II", range = 0, col = grey(4/5))
+apply(yhat, 2, function(y,x) lines(x, y, lwd = lw), x = xx)
+axis(1, at = 1:6, labels = (0:5)*30 + 30, cex.axis = cx.lab)
+axis(2, at = c(0, 25, 50, 75, 100), cex.axis = cx.lab)
+box()
 }
 
 }

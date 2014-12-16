@@ -8,7 +8,6 @@
 \alias{d2bc}
 \alias{d2ao}
 \alias{d2mcjI}
-\alias{sparsity}
 \alias{se.rqt}
 \alias{marefbc}
 \alias{marefao}

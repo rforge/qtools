@@ -12,7 +12,7 @@ This function computes marginal effects for \code{rqt} and \code{rq.counts} obje
 }
 
 \usage{
-maref(...)
+maref(object, newdata, index = 2, index.extra = NULL, ...)
 \method{maref}{rqt}(object, newdata, index = 2, index.extra = NULL, ...)
 \method{maref}{rq.counts}(object, newdata, index = 2, index.extra = NULL, ...)
 }

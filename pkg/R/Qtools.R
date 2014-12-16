@@ -1268,7 +1268,9 @@ return(ans)
 ##################################################
 
 # Generic
-sparsity <- function(...) UseMethod("sparsity")
+sparsity <- function(object, se = "nid", hs = TRUE) UseMethod("sparsity")
+
+# rqt object
 
 sparsity.rqt <- function(object, se = "nid", hs = TRUE){
     mt <- terms(object)
@@ -1291,9 +1293,7 @@ sparsity.rqt <- function(object, se = "nid", hs = TRUE){
         y <- y * wt
     }
     if (is.null(se)) {
-        if (n < 1001) 
-            se <- "rank"
-        else se <- "nid"
+		se <- "nid"
     }
 
 spar <- dens <- matrix(NA, n, nt)
@@ -1345,6 +1345,8 @@ tau <- taus[i]
     return(list(density = dens, sparsity = spar, bandwidth = h))
 }
 
+# rq object
+
 sparsity.rq <- function(object, se = "nid", hs = TRUE){
     mt <- terms(object)
     m <- model.frame(object)
@@ -1366,9 +1368,7 @@ sparsity.rq <- function(object, se = "nid", hs = TRUE){
         y <- y * wt
     }
     if (is.null(se)) {
-        if (n < 1001) 
-            se <- "rank"
-        else se <- "nid"
+		se <- "nid"
     }
 
 spar <- dens <- matrix(NA, n, nq)
@@ -1670,7 +1670,7 @@ return(V)
 
 # Generic
 
-maref <- function(...) UseMethod("maref")
+maref <- function(object, newdata, index = 2, index.extra = NULL, ...) UseMethod("maref")
 
 # rqt object
 

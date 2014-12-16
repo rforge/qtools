@@ -18,9 +18,9 @@ Functions used in quantile regression transformation models
 
 \usage{
 ao(theta, lambda, symm = TRUE, omega = 0.001)
-invao(x, lambda, symm = TRUE)
+invao(x, lambda, symm = TRUE, replace = TRUE)
 bc(x, lambda)
-invbc(x, lambda)
+invbc(x, lambda, replace = TRUE)
 mcjI(x, lambda, symm = TRUE, bounded = FALSE, omega = 0.001)
 invmcjI(x, lambda, symm = TRUE, bounded = FALSE)
 mcjII(x, lambda, delta, bounded = FALSE, omega = 0.001)
@@ -43,6 +43,10 @@ logical flag. If \code{TRUE} the argument \code{x} is assumed to be bounded betw
   \item{omega}{
 small constant to avoid numerical problems when \code{theta} is exactly 0 or 1.
 }
+  \item{replace}{
+logical flag. If \code{TRUE} (default), values that are outside the admissible range after the Box-Cox or the Aranda-Ordaz back-transformations are replaced by the range bounds.
+}
+
 }
 
 \details{
