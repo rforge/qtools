@@ -62,7 +62,7 @@ Aranda-Ordaz FJ. On two families of transformations to additivity for binary res
 
 Box GEP, Cox DR. An analysis of transformations. Journal of the Royal Statistical Society Series B-Statistical Methodology 1964;26(2):211-252.
 
-Geraci M and Jones MC. Improved transformation-based quantile regression. Unpublished Manuscript
+Geraci M and Jones MC. Improved transformation-based quantile regression. Canadian Journal of Statistics 2015;43(1):118-132.
 
 Jones MC. Connecting distributions with power tails on the real line, the half line and the interval. International Statistical Review 2007;75(1):58-69.
 }

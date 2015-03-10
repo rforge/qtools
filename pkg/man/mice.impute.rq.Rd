@@ -67,7 +67,7 @@ Bottai M, Zhen H. Multiple imputation based on conditional quantile estimation. 
 Geraci M. Estimation of regression quantiles in complex surveys with data missing at random: An application to birthweight determinants. Statistical Methods in Medical Research 2013.
 doi:10.1177/0962280213484401
 
-Geraci M and Jones MC. Improved transformation-based quantile regression. Unpublished Manuscript
+Geraci M and Jones MC. Improved transformation-based quantile regression. Canadian Journal of Statistics 2015;43(1):118-132.
 
 van Buuren S and Groothuis-Oudshoorn K (2011). mice: Multivariate Imputation by Chained Equations in R. Journal of Statistical Software, 45(3), 1-67. URL http://www.jstatsoft.org/v45/i03/.
 

@@ -14,13 +14,13 @@ This function calculates quantile-based summary statistics for location, scale a
 
 \usage{
 qlss(...)
-\method{qlss}{default}(fun = "qnorm", p = 0.1, ...)
-\method{qlss}{formula}(formula, p = 0.1, ..., predictLs = NULL)
-\method{qlss}{numeric}(x, p = 0.1, ...)
+\method{qlss}{default}(fun = "qnorm", probs = 0.1, ...)
+\method{qlss}{formula}(formula, probs = 0.1, ci = FALSE, predictLs = NULL, ...)
+\method{qlss}{numeric}(x, probs = 0.1, ...)
 }
 
 \arguments{
-  \item{p}{
+  \item{probs}{
 a vector of probabilities.
 }
   \item{fun}{
@@ -28,6 +28,9 @@ quantile function.
 }
   \item{formula}{
 an object of class \code{\link{formula}}: a symbolic description of the model to be fitted. The details of model specification are given under `Details'.
+}
+ \item{ci}{
+logical flag. If \code{TRUE}, bootstrapped confidence intervals for the predictions are calculated.
 }
 \item{x}{
 a numeric vector.
@@ -70,11 +73,11 @@ Marco Geraci
 qlss()
 
 # Compute summary statistics of a t distribution with 3 df
-qlss(fun = "qt", df = 3, p = 0.05)
+qlss(fun = "qt", df = 3, probs = 0.05)
 
 # Compute summary statistics for a sample using a sequence of probabilities
 x <- rnorm(1000)
-qlss(x, p = c(0.1, 0.2, 0.3, 0.4))
+qlss(x, probs = c(0.1, 0.2, 0.3, 0.4))
 
 # Compute summary statistics for Volume conditional on Height
 trees2 <- trees[order(trees$Height),]
@@ -82,7 +85,7 @@ fit <- qlss(Volume ~ Height, data = trees2)
 plot(fit, z = trees2$Height, xlab = "height")
 
 # Use a quadratic model for Height
-fit <- qlss(Volume ~ poly(Height,2), data = trees2, p = .1)
+fit <- qlss(Volume ~ poly(Height,2), data = trees2)
 plot(fit, z = trees2$Height, xlab = "height")
 
 

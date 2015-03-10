@@ -94,7 +94,7 @@ a list of class \code{rq.counts} containing the following components
 \references{
 Geraci M (2014). The lqmm package for Laplace quantile regression. Journal of Statistical Software 57(13), 1-29. URL \url{http://www.jstatsoft.org/v57/i13/}.
 
-Geraci M and Jones MC. Improved transformation-based quantile regression. Unpublished Manuscript
+Geraci M and Jones MC. Improved transformation-based quantile regression. Canadian Journal of Statistics 2015;43(1):118-132.
 
 Koenker R (2013). quantreg: Quantile Regression. R package version 5.05. URL \url{http://CRAN.R-project.org/package=quantreg}.
 

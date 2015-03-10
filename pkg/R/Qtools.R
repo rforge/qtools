@@ -42,24 +42,60 @@ pmf <- as.numeric(table(x)/n)
 val <- list()
 val$x <- xo
 val$y <- ecdf(x)(xo) - 0.5*pmf
+attr(val, "function") <- approxfun(val$x, val$y, method = "linear", rule = 1)
 return(val)
 
 }
 
-midquantile <- function(x, probs = NULL, na.rm = FALSE){
+midquantile <- function(x, probs = 1:3/4, na.rm = FALSE){
 
 if(!na.rm && any(is.na(x))) 
 	return(NA)
 if(na.rm && any(ii <- is.na(x))) 
 	x <- x[!ii]
-if(!is.null(probs) && any(c(probs < 0, probs > 1)))
+if(any(c(probs < 0, probs > 1)))
 	stop("the probability must be between 0 and 1")
 	
-Gn <- midecdf(x)
-qval <- approxfun(Gn$y, Gn$x, method = "linear", rule = 2)
+Fn <- midecdf(x)
+Qn <- approxfun(Fn$y, Fn$x, method = "linear", rule = 2)
+val <- list()
+val$x <- probs
+val$y <- Qn(probs)
+attr(val, "function") <- Qn
+return(val)
+}
 
-if(is.null(probs))
-	return(qval) else return(qval(probs))
+######################################################################
+### Confidence intervals for unconditional quantiles
+######################################################################
+
+midquantile.ci <- function(x, probs = 1:3/4, level = 0.95){
+
+if(any(!probs > 0) | any(!probs < 1)) stop("Quantile index out of range: p must be > 0 and < 1")
+
+Fn <- midecdf(x)
+Qn <- midquantile(x, probs = probs)
+k <- length(probs)
+n <- length(x)
+p <- table(x)/n
+val <- dens <- rep(NA, k)
+level <- level + (1-level)/2
+
+for(i in 1:k){
+	sel <- findInterval(probs[i], Fn$y)
+	if(!sel %in% c(0, length(Fn$y))){
+		lambda <- (Fn$y[sel+1] - probs[i])/(Fn$y[sel+1] - Fn$y[sel]);
+		val[i] <- probs[i]*(1- probs[i]) - (1 - (lambda - 1)^2)*p[sel]/4 - (1 - lambda^2)*p[sel+1]/4
+		dens[i] <- 0.5*(p[sel] + p[sel+1])/(Fn$x[sel+1] - Fn$x[sel])
+	}
+}
+stderr <- sqrt(val/(n*dens^2))
+LB <- Qn$y - qt(level, n - 1) * stderr
+UB <- Qn$y + qt(level, n - 1) * stderr
+val <- data.frame(midquantile = Qn$y, lower = LB, upper = UB)
+rownames(val) <- paste0(probs*100, "%")
+attr(val, "stderr") <- stderr
+return(val)
 }
 
 ######################################################################
@@ -68,103 +104,205 @@ if(is.null(probs))
 
 qlss <- function(...) UseMethod("qlss")
 
-qlss.numeric <- function(x, p = 0.1, ...){
+qlss.numeric <- function(x, probs = 0.1, ...){
 
-if(any(!p > 0) | any(!p < 0.5)) stop("Quantile index out of range: p must be > 0 and < 0.5")
-if(any(duplicated(p))) p <- unique(p)
-nq <- length(p)
+if(any(!probs > 0) | any(!probs < 0.5)) stop("Quantile index out of range: probs must be > 0 and < 0.5")
+if(any(duplicated(probs))) probs <- unique(probs)
+nq <- length(probs)
 
 vec3 <- as.numeric(do.call(what = quantile, args = list(x = x, probs = 1:3/4, ...)))
 Me <- vec3[2]
 IQR <- vec3[3] - vec3[1]
 
-PD <- Ap <- Tp <- rep(NA, nq)
+IPR <- Ap <- Tp <- rep(NA, nq)
 for(i in 1:nq){
-	vecp <- as.numeric(do.call(what = quantile, args = list(x = x, probs = p[i], ...)))
-	vecq <- as.numeric(do.call(what = quantile, args = list(x = x, probs = 1 - p[i], ...)))
+	vecp <- as.numeric(do.call(what = quantile, args = list(x = x, probs = probs[i], ...)))
+	vecq <- as.numeric(do.call(what = quantile, args = list(x = x, probs = 1 - probs[i], ...)))
 
-	PD[i] <- vecq - vecp
-	Ap[i] <- (vecq - 2*Me + vecp)/PD[i]
-	Tp[i] <- PD[i]/IQR
+	IPR[i] <- vecq - vecp
+	Ap[i] <- (vecq - 2*Me + vecp)/IPR[i]
+	Tp[i] <- IPR[i]/IQR
 }
+names(IPR) <- names(Ap) <- names(Tp) <- probs
 
-val <- list(location = list(median = Me), scale = list(IQR = IQR), shape = list(Bowley = Ap, shape = Tp))
+val <- list(location = list(median = Me), scale = list(IQR = IQR, IPR = IPR), shape = list(skewness = Ap, shape = Tp))
 class(val) <- "qlss"
 return(val)
 }
 
-qlss.default <- function(fun = "qnorm", p = 0.1, ...){
+qlss.default <- function(fun = "qnorm", probs = 0.1, ...){
 
-if(any(!p > 0) | any(!p < 0.5)) stop("Quantile index out of range: p must be > 0 and < 0.5")
-if(any(duplicated(p))) p <- unique(p)
-nq <- length(p)
+if(any(!probs > 0) | any(!probs < 0.5)) stop("Quantile index out of range: probs must be > 0 and < 0.5")
+if(any(duplicated(probs))) probs <- unique(probs)
+nq <- length(probs)
 
 vec3 <- as.numeric(do.call(what = match.fun(fun), args = list(p = 1:3/4, ...)))
 Me <- vec3[2]
 IQR <- vec3[3] - vec3[1]
 
-PD <- Ap <- Tp <- rep(NA, nq)
+IPR <- Ap <- Tp <- rep(NA, nq)
 for(i in 1:nq){
-	vecp <- as.numeric(do.call(what = match.fun(fun), args = list(p = p[i], ...)))
-	vecq <- as.numeric(do.call(what = match.fun(fun), args = list(p = 1 - p[i], ...)))
+	vecp <- as.numeric(do.call(what = match.fun(fun), args = list(p = probs[i], ...)))
+	vecq <- as.numeric(do.call(what = match.fun(fun), args = list(p = 1 - probs[i], ...)))
 
-	PD[i] <- vecq - vecp
-	Ap[i] <- (vecq - 2*Me + vecp)/PD[i]
-	Tp[i] <- PD[i]/IQR
+	IPR[i] <- vecq - vecp
+	Ap[i] <- (vecq - 2*Me + vecp)/IPR[i]
+	Tp[i] <- IPR[i]/IQR
 }
+names(IPR) <- names(Ap) <- names(Tp) <- probs
 
-val <- list(location = list(median = Me), scale = list(IQR = IQR), shape = list(Bowley = Ap, shape = Tp))
+val <- list(location = list(median = Me), scale = list(IQR = IQR, IPR = IPR), shape = list(skewness = Ap, shape = Tp))
 class(val) <- "qlss"
 return(val)
 }
 
-qlss.formula <- function(formula, p = 0.1, ..., predictLs = NULL){
+qlss.formula <- function(formula, probs = 0.1, ci = FALSE, predictLs = NULL, ...){
 
-if(any(!p > 0) | any(!p < 0.5)) stop("Quantile index out of range: p must be > 0 and < 0.5")
-if(any(duplicated(p))) p <- unique(p)
-nq <- length(p)
+if(any(!probs > 0) | any(!probs < 0.5)) stop("Quantile index out of range: probs must be > 0 and < 0.5")
+if(any(duplicated(probs))) probs <- unique(probs)
+nq <- length(probs)
 
-fit.list <- list(formula = formula, tau = p, method = "fn")
+#sel <- match("interval", names(predictLS))
+#if(is.na(sel)) {ci <- FALSE}
+#	else {ci <- predictLS[[sel]] == "confidence"}
+	
+fit.list <- list(formula = formula, tau = probs, method = "fn")
 fit.list <- c(fit.list, list(...))
 
 fit <- do.call(rq, args = fit.list)
 predict.list <- c(list(object = fit), as.list(predictLs))
 vecp <- as.matrix(do.call(predict, args = predict.list))
+if(ci & nq > 1) Bp <- lapply(summary(fit, se = "boot", R = 500, cov = T), function(x) x$B)
+if(ci & nq == 1) Bp <- list(summary(fit, se = "boot", R = 500, cov = T)$B)
 
-fit.list$tau <- 1-p
+fit.list$tau <- 1-probs
 fit <- do.call(rq, args = fit.list)
 predict.list$object <- fit
 vecq <- as.matrix(do.call(predict, args = predict.list))
+if(ci & nq > 1) Bq <- lapply(summary(fit, se = "boot", R = 500,cov = T), function(x) x$B)
+if(ci & nq == 1) Bq <- list(summary(fit, se = "boot", R = 500, cov = T)$B)
 
 fit.list$tau <- 1:3/4
 fit <- do.call(rq, args = fit.list)
 predict.list$object <- fit
 vec3 <- as.matrix(do.call(predict, args = predict.list))
+if(ci) B3 <- lapply(summary(fit, se = "boot", R = 500, cov = T), function(x) x$B)
 
 Me <- as.matrix(vec3[,2])
 IQR <- as.matrix(vec3[,3] - vec3[,1])
 n <- length(Me)
 
-PD <- Ap <- Tp <- matrix(NA, n, nq)
-for(i in 1:nq){
-	PD[,i] <- vecq[,i] - vecp[,i]
-	Ap[,i] <- (vecq[,i] - 2*Me + vecp[,i])/PD[,i]
-	Tp[,i] <- PD[,i]/IQR
+sel <- match("newdata", names(predict.list))
+if(!is.na(sel)){
+	newdata <- predict.list[["newdata"]]
+	nn <- names(newdata)
+	h <- setdiff(names(fit$model), nn)
+	for(j in 1:length(h)){
+		newdata[[length(newdata)+j]] <- rep(0, nrow(newdata))
+	}
+	names(newdata) <- c(nn, h)
+	fit$model <- newdata
 }
 
-val <- list(location = list(median = Me), scale = list(IQR = IQR), shape = list(Bowley = Ap, shape = Tp))
+IPR <- Ap <- Tp <- matrix(NA, n, nq)
+if(ci){
+	ipr <- ap <- tp <- list()
+	x <-  model.matrix(fit$formula, fit$model)
+	iqr <- x%*%t(B3[[3]] - B3[[1]])
+}
+
+for(i in 1:nq){
+	IPR[,i] <- vecq[,i] - vecp[,i]
+	Ap[,i] <- (vecq[,i] - 2*Me + vecp[,i])/IPR[,i]
+	Tp[,i] <- IPR[,i]/IQR
+	if(ci){
+		ipr[[i]] <- x%*%t(Bq[[i]]- Bp[[i]])
+		ap[[i]] <- x%*%t((Bq[[i]] - 2*B3[[2]] + Bp[[i]]))/ipr[[i]]
+		tp[[i]] <- ipr[[i]]/iqr
+	}
+}
+colnames(IPR) <- colnames(Ap) <- colnames(Tp) <- probs
+
+val <- list(location = list(median = Me), scale = list(IQR = IQR, IPR = IPR), shape = list(skewness = Ap, shape = Tp))
+if(ci) val$ci <- list(Me = x%*%t(B3[[2]]), IQR = iqr, IPR = ipr, Ap = ap, Tp = tp)
 class(val) <- "qlss"
 return(val)
 
 }
 
-plot.qlss <- function(x, z, type = "l", ...){
+plot.qlss <- function(x, z, which = 1, ci = FALSE, level = 0.95, type = "l", ...){
+
+level <- level + (1-level)/2
+
+sdtrim <- function(u, trim = 0.05){
+sel1 <- u > quantile(u, probs = trim/2, na.rm = TRUE)
+sel2 <- u < quantile(u, probs = 1-trim/2, na.rm = TRUE)
+sd(u[sel1 & sel2])
+}
+
+r <- order(z)
+n <- length(z)
+if(ci){
+	if(is.null(x$ci)) stop("Use 'qlss' with 'ci = TRUE' first.") else 
+		{
+		CI <- x$ci
+		#Meq <- t(apply(CI$Me, 1, function(x) quantile(x, probs = level)))
+		tmp <- qt(level, n - 1) * apply(CI$Me, 1, sdtrim)
+		Meq <- cbind(x$location$median - tmp, x$location$median + tmp)
+		#IQRq <- t(apply(CI$IQR, 1, function(x) quantile(x, probs = level)))
+		tmp <- qt(level, n - 1) * apply(CI$IQR, 1, sdtrim)
+		IQRq <- cbind(x$scale$IQR - tmp, x$scale$IQR + tmp)
+		#Apq <- t(apply(CI$Ap[[which]], 1, function(x) quantile(x, probs = level)))
+		tmp <- qt(level, n - 1) * apply(CI$Ap[[which]], 1, sdtrim)
+		Apq <- cbind(x$shape$skewness[,which] - tmp, x$shape$skewness[,which] + tmp)
+		Apq[Apq > 1] <- 1
+		Apq[Apq < -1] <- -1
+		#Tpq <- t(apply(CI$Tp[[which]], 1, function(x) quantile(x, probs = level)))
+		tmp <- qt(level, n - 1) * apply(CI$Tp[[which]], 1, sdtrim)
+		Tpq <- cbind(x$shape$shape[,which] - tmp, x$shape$shape[,which] + tmp)
+		}
+}
+
+if(ci){
+	yl1 <- range(c(x$location$median,Meq))
+	yl2 <- range(c(x$scale$IQR,IQRq))
+	yl3 <- range(c(x$shape$skewness[,which],Apq))
+	yl4 <- range(c(x$shape$shape[,which],Tpq))
+} else {
+	yl1 <- range(c(x$location$median))
+	yl2 <- range(c(x$scale$IQR))
+	yl3 <- range(c(x$shape$skewness[,which]))
+	yl4 <- range(c(x$shape$shape[,which]))
+}
 
 par(mfrow = c(2,2))
-plot(z, x$location$median, ylab = "median", type = type, ...)
-plot(z, x$scale$IQR, ylab = "IQR", type = type, ...)
-plot(z, x$shape$Bowley, ylab = "Bowley", type = type, ...)
-plot(z, x$shape$shape, ylab = "shape", type = type, ...)
+plot(z[r], x$location$median[r], ylab = "Median", type = type, ylim = yl1, ...)
+abline(h = 0, col = grey(.5))
+if(ci){
+lines(z[r], Meq[r,1], lty = 2, ...)
+lines(z[r], Meq[r,2], lty = 2, ...)
+}
+
+plot(z[r], x$scale$IQR[r], ylab = "IQR", type = type, ylim = yl2, ...)
+abline(h = 0, col = grey(.5))
+if(ci){
+lines(z[r], IQRq[r,1], lty = 2, ...)
+lines(z[r], IQRq[r,2], lty = 2, ...)
+}
+
+plot(z[r], x$shape$skewness[r,which], ylab = "Skewness", type = type, ylim = yl3, ...)
+abline(h = 0, col = grey(.5))
+if(ci){
+lines(z[r], Apq[r,1], lty = 2, ...)
+lines(z[r], Apq[r,2], lty = 2, ...)
+}
+
+plot(z[r], x$shape$shape[r,which], ylab = "Shape", type = type, ylim = yl4, ...)
+abline(h = 0, col = grey(.5))
+if(ci){
+lines(z[r], Tpq[r,1], lty = 2, ...)
+lines(z[r], Tpq[r,2], lty = 2, ...)
+}
 
 }
 
@@ -1229,6 +1367,11 @@ return(object$fitted.values)
 
 }
 
+residuals.rqt <- function(object, ...){
+
+return(object$y - object$fitted.values)
+
+}
 
 coef.rqt <- coefficients.rqt <- function(object, all = FALSE, ...){
 
@@ -1342,12 +1485,13 @@ tau <- taus[i]
     }
 }# loop i
 
+	colnames(dens) <- colnames(spar) <- taus
     return(list(density = dens, sparsity = spar, bandwidth = h))
 }
 
 # rq object
 
-sparsity.rq <- function(object, se = "nid", hs = TRUE){
+sparsity.rq <- sparsity.rqs <-function(object, se = "nid", hs = TRUE){
     mt <- terms(object)
     m <- model.frame(object)
     y <- model.response(m)
@@ -1416,6 +1560,7 @@ tau <- taus[i]
     }
 }# loop i
 
+	colnames(dens) <- colnames(spar) <- taus
     return(list(density = dens, sparsity = spar, bandwidth = h))
 }
 
@@ -2316,11 +2461,11 @@ addnoise <- function(x, centered = TRUE, B = 0.999)
 
 
 ##################################################
-### Khmaladze test
+### Khmaladze and other tests
 ##################################################
 
 
-pvalue.KT <- function(object, epsilon){
+KhmaladzeFormat <- function(object, epsilon){
 
 if(class(object) != "KhmaladzeTest") stop("class(object) must be 'KhmaladzeTest'")
 tt <- get("KhmaladzeTable")
@@ -2335,14 +2480,94 @@ alpha <- c(0.01,0.05,0.1)
 
 ans[1,1] <- object$Tn
 ans[1,2] <- min(c(1,alpha[object$Tn > sel]))
-
 ans[2:(p+1),1] <- object$THn
+
+sig <- c("significant at 1% level", "significant at 5% level", "significant at 10% level", "not significant at 10% level")
+null <- if(object$nullH == "location") "location-shift hypothesis" else "location-scale-shift hypothesis"
 
 if(p==1){val <- min(c(1,alpha[object$THn > sel]))} else
 {val <- rep(0,p); for(i in 1:p) val[i] <- min(c(1,alpha[object$THn[i] > sel]))}
 ans[2:(p+1),2] <- val
 
-return(ans)
+mm <- match(ans[1,2], c(alpha,1))
+nn <- match(ans[2:(p+1),2], c(alpha,1))
+
+cat("Khmaladze test for the", null, "\n")
+cat("Joint test is", sig[mm], "\n")
+cat("Test(s) for individual slopes:", "\n")
+for(i in 1:p){
+cat(names(object$THn)[i], sig[nn][i], "\n")
+}
+invisible(ans)
+
+}
+
+
+GOFTest <- function(object, covariates = FALSE, nb = 10){
+
+is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol
+	
+if(!is.wholenumber(nb) | nb < 2) stop("nb must be an integer >= 2")
+cl <- class(object)
+if(!cl %in% c("rq","rqs","rqt")) stop("Provide a fitted model from 'rq' or 'rqt'.")
+
+tau <- object$tau
+nq <- length(tau)
+flag <- attributes(object$terms)$intercept == 1
+x <- if(flag) as.matrix(object$x[,-1]) else as.matrix(object$x)
+Rmat <- as.matrix(residuals(object))
+yhat <- fitted(object)
+
+yhat <- apply(yhat, 2, function(w) {
+		bks <- quantile(w, probs = 0:nb/nb)
+		w <- findInterval(w, bks, rightmost.closed = T, all.inside = T)
+		return(w)
+	}
+)
+	
+x <- apply(x, 2, function(w) {
+		bks <- quantile(w, probs = 0:nb/nb)
+		w <- findInterval(w, bks, rightmost.closed = T, all.inside = T)
+		return(w)
+	}
+)
+
+x <- data.frame(x)
+x <- lapply(x, as.factor)
+
+ff <- as.formula(paste("z~", paste(c("w", names(x)), collapse = "+")))
+lrt <- ddf <- pval <- vector()
+fit1 <- list()
+
+for(j in 1:nq){
+	x$z <- as.numeric(Rmat[,j] < 0)
+	x$w <- as.factor(yhat[,j])
+	fit1[[j]] <- if(covariates) glm(ff, family = binomial(), data = x) else glm(z ~ w, family = binomial(), data = x)
+	fit0 <- glm(z ~ 1, family = binomial(), data = x)
+	df1 <- attributes(logLik(fit1[[j]]))$df
+	df0 <- attributes(logLik(fit0))$df
+	lrt[j] <- 2 * as.numeric(logLik(fit1[[j]]) - logLik(fit0))
+	ddf[j] <- df1 - df0
+	pval[j] <- pchisq(lrt[j], ddf[j], lower.tail = FALSE)
+}
+
+names(lrt) <- names(ddf) <- names(pval) <- tau
+
+val <- list(lrt = lrt, df = ddf, p.value = pval, fit.full = fit1, tau = tau)
+class(val) <- "GOFTest"
+return(val)
+
+}
+
+
+print.GOFTest <- function (x, digits = max(3, getOption("digits") - 3), ...){
+tau <- x$tau
+nq <- length(tau)
+cat("Goodness-of-fit test for quantile regression based on the logistic likelihood", "\n")
+for (j in 1:nq) {
+	cat(paste0("Quantile ", tau[j], ": "))
+	cat(paste0("Chi-squared ", x$df[j], " df = ", round(x$lrt[j], digits), "; p-value = ", round(x$p.value[j],digits)), "\n")
+}
 
 }
 

@@ -50,7 +50,7 @@ Canty A and Ripley B (2014). boot: Bootstrap R (S-Plus) Functions. R package ver
 
 Davison AC and Hinkley DV (1997). Bootstrap Methods and Their Applications. Cambridge University Press, Cambridge.
 
-Geraci M and Jones MC. Improved transformation-based quantile regression. Unpublished Manuscript
+Geraci M and Jones MC. Improved transformation-based quantile regression. Canadian Journal of Statistics 2015;43(1):118-132.
 
 Mu YM, He XM. Power transformation toward a linear regression quantile. Journal of the American Statistical Association 2007;102(477):269-279.
 

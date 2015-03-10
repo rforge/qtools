@@ -2,7 +2,7 @@
 \alias{residuals.rq.counts}
 
 \title{
-Residuals from an rq.counts Objects
+Residuals from an rq.counts Object
 }
 
 \description{

@@ -106,7 +106,7 @@ Dehbi H-M, Cortina-Borja M, Geraci M. Aranda-Ordaz quantile regression for stude
 
 Fitzenberger B, Wilke R, Zhang X. Implementing Box-Cox quantile regression. Econometric Reviews 2010;29(2):158-181.
 
-Geraci M and Jones MC. Improved transformation-based quantile regression. Canadian Journal of Statistics 2014 (in press).
+Geraci M and Jones MC. Improved transformation-based quantile regression. Canadian Journal of Statistics 2015;43(1):118-132.
 
 Jones MC. Connecting distributions with power tails on the real line, the half line and the interval. International Statistical Review 2007;75(1):58-69.
 
