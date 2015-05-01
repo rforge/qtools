@@ -10,23 +10,28 @@ This function computes predictions based on fitted quantile regression transform
 }
 
 \usage{
-\method{predict}{rqt}(object, newdata, na.action = na.pass, raw = TRUE, ...)
+\method{predict}{rqt}(object, newdata, na.action = na.pass,
+type = "response", ...)
 }
 
 \arguments{
   \item{object}{
 an object of \code{\link{class}} \code{rqt}.
 }
+
   \item{newdata}{
 an optional data frame in which to look for variables with which to predict. If omitted, the fitted values are used.
 }
+
   \item{na.action}{
 function determining what should be done with missing values in \code{newdata}. The default is to predict \code{NA}.
 }
-  \item{raw}{
-logical flag. If \code{FALSE} the predictions on the transformed scale \emph{Xb} are returned; otherwise, the values are back-transformed using the inverse of the transformation \emph{h} used to fit the model, i.e. \emph{hinv(Xb)}.
+
+ \item{type}{
+the type of prediction required. The default "response" is on the scale of the response variable, i.e. the values are back-transformed using the inverse of the transformation \emph{hinv(Xb)}; the alternative "link" is on the scale of the linear predictors \emph{h(y) = Xb}.
 }
-  \item{\dots}{
+
+ \item{\dots}{
 not used.
 }
 }

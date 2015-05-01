@@ -13,7 +13,7 @@ GOFTest(object, covariates = FALSE, nb = 10)
 
 \arguments{
   \item{object}{
-an object of \code{\link{class}} "rq","rqs", or "rqt".
+an object of \code{\link{class}} "rq","rqs", "rqt", "rrq", or "rq.counts".
 }
   \item{covariates}{
 logical flag. If \code{TRUE}, the covariates used in the fitted quantile regression model are included to assess the goodness of fit.

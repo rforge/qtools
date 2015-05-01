@@ -24,7 +24,7 @@ numeric value to determine the confidence level \code{(1-alpha)} of the required
 specifies the method used to compute standard errors for conditional (\code{conditional = TRUE}) inference on regression coefficients (see argument \code{se} in \code{\link{summary.rq}}). For unconditional inference (\code{conditional = FALSE}), bootstrap is the only method available.
 }
   \item{R}{
-number of boostrap replications.
+number of bootstrap replications.
 }
   \item{sim}{
 see argument \code{sim} in \code{\link{boot}}.
@@ -59,6 +59,11 @@ Mu YM, He XM. Power transformation toward a linear regression quantile. Journal 
 
 \author{
 Marco Geraci
+}
+
+\seealso{
+
+\code{\link{tsrq}}, \code{\link{rcrq}}, \code{\link{tsrq2}} or \code{\link{nlrq2}}
 }
 
 \keyword{ bootstrap }

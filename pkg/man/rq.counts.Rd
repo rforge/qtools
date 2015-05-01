@@ -21,7 +21,7 @@ an object of class \code{\link{formula}}: a symbolic description of the model to
 an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which lqm is called.
 }
   \item{tsf}{
-transformation to be used. Possible options are \code{mcjI} for Proposal I and \code{bc} for Box-Cox. The latter is the default, with \code{lambda = 0}, ie logarithmic transformation.
+transformation to be used. Possible options are \code{mcjI} for Proposal I and \code{bc} for Box-Cox. The latter is the default, with \code{lambda = 0}, i.e. the logarithmic transformation.
 }
   \item{symm}{
 logical flag. If \code{TRUE} and \code{tsf = 'mcj'}, the symmetric Proposal I transformation is used.
@@ -92,7 +92,6 @@ a list of class \code{rq.counts} containing the following components
 
 
 \references{
-Geraci M (2014). The lqmm package for Laplace quantile regression. Journal of Statistical Software 57(13), 1-29. URL \url{http://www.jstatsoft.org/v57/i13/}.
 
 Geraci M and Jones MC. Improved transformation-based quantile regression. Canadian Journal of Statistics 2015;43(1):118-132.
 

@@ -15,33 +15,58 @@ This function calculates quantile-based summary statistics for location, scale a
 \usage{
 qlss(...)
 \method{qlss}{default}(fun = "qnorm", probs = 0.1, ...)
-\method{qlss}{formula}(formula, probs = 0.1, ci = FALSE, predictLs = NULL, ...)
+\method{qlss}{formula}(formula, data, type = "rq", tsf = NULL, symm = TRUE, bounded = FALSE,
+lambda.p = NULL, delta.p = NULL, lambda.q = NULL, delta.q = NULL,
+probs = 0.1, ci = FALSE, R = 500, predictLs = NULL, ...)
 \method{qlss}{numeric}(x, probs = 0.1, ...)
 }
 
 \arguments{
-  \item{probs}{
-a vector of probabilities.
-}
   \item{fun}{
 quantile function.
 }
+  \item{probs}{
+a vector of probabilities.
+}
   \item{formula}{
-an object of class \code{\link{formula}}: a symbolic description of the model to be fitted. The details of model specification are given under `Details'.
+an object of class \code{\link{formula}}: a symbolic description of the model to be fitted. The details of model specification are given under 'Details'.
+}
+  \item{data}{
+a data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model.
+}
+  \item{type}{
+possible options are \code{rq} for quantile regression (default) or \code{rqt} for transformation-based quantile regression.
+}
+  \item{tsf}{
+transformation to be used. Possible options are \code{mcjI} for Proposal I transformation models (default), \code{mcjI} for Proposal II transformation models, \code{bc} for Box-Cox and \code{ao} for Aranda-Ordaz transformation models.
+}
+  \item{symm}{
+logical flag. If \code{TRUE} (default) a symmetric transformation is used.
+}
+  \item{bounded}{
+logical flag. If \code{TRUE} the response is assumed to be doubly bounded on [a,b]. If \code{FALSE} the response is assumed to be singly bounded (ie, strictly positive).
+}
+  \item{lambda.p, delta.p}{
+vectors with values of transformation parameters to fit models for quantiles \code{probs}. Must be the same length as \code{probs}.
+}
+  \item{lambda.q, delta.q}{
+vectors with values of transformation parameters to fit models for quantiles \code{1-probs}. Must be the same length as \code{probs}.
 }
  \item{ci}{
 logical flag. If \code{TRUE}, bootstrapped confidence intervals for the predictions are calculated.
 }
+ \item{R}{
+number of bootstrap replications.
+}
 \item{x}{
 a numeric vector.
-}
-  \item{\dots}{
-other arguments for \code{fun} or \code{rq}.
 }
   \item{predictLs}{
 list of arguments for \code{predict.rq}.
 }
-
+  \item{\dots}{
+other arguments for \code{fun}, \code{rq} or \code{tsrq}.
+}
 }
 
 \details{
@@ -60,6 +85,8 @@ The argument \code{p}
 }
 
 \references{
+Geraci M and Jones MC. Improved transformation-based quantile regression. Canadian Journal of Statistics 2015;43(1):118-132.
+
 Gilchrist W. Statistical modelling with quantile functions. Chapman and Hall/CRC; 2000.
 }
 
@@ -92,7 +119,7 @@ plot(fit, z = trees2$Height, xlab = "height")
 }
 
 \seealso{
-\code{\link{rq}}
+\code{\link{rq}}, \code{\link{tsrq}}, \code{\link{tsrq2}}
 }
 
 \keyword{ location-scale-shape }

@@ -11,7 +11,7 @@ This function computes predictions based on fitted linear quantile model.
 
 \usage{
 \method{predict}{rq.counts}(object, newdata, offset,
-	na.action = na.pass, raw = TRUE, ...)
+	na.action = na.pass, type = "response", ...)
 }
 
 \arguments{
@@ -27,10 +27,9 @@ an offset to be used with \code{newdata}.
  \item{na.action}{
 function determining what should be done with missing values in \code{newdata}. The default is to predict \code{NA}.}
 
-  \item{raw}{
-logical flag. If \code{FALSE} the predictions on the transformed scale \emph{h(y) = Xb} are returned; otherwise, the values are back-transformed using the inverse of the transformation \emph{hinv(y)  = tau + exp(Xb)}.
+ \item{type}{
+the type of prediction required. The default "response" is on the scale of the response variable, i.e. the values are back-transformed using the inverse of the transformation \emph{hinv(Xb)}; the alternative "link" is on the scale of the linear predictors \emph{h(y) = Xb}.
 }
-
   \item{\dots}{
 not used.
 }
@@ -53,7 +52,7 @@ data(esterase)
 
 # Fit quantiles 0.25 and 0.75
 fit <- rq.counts(Count ~ Esterase, tau = 0.5, data = esterase, M = 50)
-cbind(fit$fitted.values, predict(fit, raw = TRUE))
+cbind(fit$fitted.values, predict(fit, type = "response"))
 
 }
 

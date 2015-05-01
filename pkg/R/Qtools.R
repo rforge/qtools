@@ -1,4 +1,4 @@
-###            Utilities for quantiles
+###            Qools: Utilities for quantiles
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -156,45 +156,31 @@ class(val) <- "qlss"
 return(val)
 }
 
-qlss.formula <- function(formula, probs = 0.1, ci = FALSE, predictLs = NULL, ...){
+qlss.fit.rq <- function(fitLs, predictLs, ci, R, ...){
 
-if(any(!probs > 0) | any(!probs < 0.5)) stop("Quantile index out of range: probs must be > 0 and < 0.5")
-if(any(duplicated(probs))) probs <- unique(probs)
-nq <- length(probs)
+fit <- do.call(rq, args = fitLs)
+predictLs <- c(list(object = fit), as.list(predictLs))
+vecp <- as.matrix(do.call(predict, args = predictLs))
+if(ci) Bp <- summary(fit, se = "boot", R = R, covariance = TRUE)$B
 
-#sel <- match("interval", names(predictLS))
-#if(is.na(sel)) {ci <- FALSE}
-#	else {ci <- predictLS[[sel]] == "confidence"}
-	
-fit.list <- list(formula = formula, tau = probs, method = "fn")
-fit.list <- c(fit.list, list(...))
+fitLs$tau <- 1-fitLs$tau
+fit <- do.call(rq, args = fitLs)
+predictLs$object <- fit
+vecq <- as.matrix(do.call(predict, args = predictLs))
+if(ci) Bq <- summary(fit, se = "boot", R = R, covariance = TRUE)$B
 
-fit <- do.call(rq, args = fit.list)
-predict.list <- c(list(object = fit), as.list(predictLs))
-vecp <- as.matrix(do.call(predict, args = predict.list))
-if(ci & nq > 1) Bp <- lapply(summary(fit, se = "boot", R = 500, cov = T), function(x) x$B)
-if(ci & nq == 1) Bp <- list(summary(fit, se = "boot", R = 500, cov = T)$B)
-
-fit.list$tau <- 1-probs
-fit <- do.call(rq, args = fit.list)
-predict.list$object <- fit
-vecq <- as.matrix(do.call(predict, args = predict.list))
-if(ci & nq > 1) Bq <- lapply(summary(fit, se = "boot", R = 500,cov = T), function(x) x$B)
-if(ci & nq == 1) Bq <- list(summary(fit, se = "boot", R = 500, cov = T)$B)
-
-fit.list$tau <- 1:3/4
-fit <- do.call(rq, args = fit.list)
-predict.list$object <- fit
-vec3 <- as.matrix(do.call(predict, args = predict.list))
-if(ci) B3 <- lapply(summary(fit, se = "boot", R = 500, cov = T), function(x) x$B)
+fitLs$tau <- 1:3/4
+fit <- do.call(rq, args = fitLs)
+predictLs$object <- fit
+vec3 <- as.matrix(do.call(predict, args = predictLs))
+if(ci) B3 <- lapply(summary(fit, se = "boot", R = R, covariance = TRUE), function(x) x$B)
 
 Me <- as.matrix(vec3[,2])
 IQR <- as.matrix(vec3[,3] - vec3[,1])
-n <- length(Me)
 
-sel <- match("newdata", names(predict.list))
+sel <- match("newdata", names(predictLs))
 if(!is.na(sel)){
-	newdata <- predict.list[["newdata"]]
+	newdata <- predictLs[["newdata"]]
 	nn <- names(newdata)
 	h <- setdiff(names(fit$model), nn)
 	for(j in 1:length(h)){
@@ -204,27 +190,157 @@ if(!is.na(sel)){
 	fit$model <- newdata
 }
 
-IPR <- Ap <- Tp <- matrix(NA, n, nq)
+IPR <- vecq - vecp
+Ap <- (vecq - 2*Me + vecp)/IPR
+Tp <- IPR/IQR
+
 if(ci){
-	ipr <- ap <- tp <- list()
 	x <-  model.matrix(fit$formula, fit$model)
 	iqr <- x%*%t(B3[[3]] - B3[[1]])
+	ipr <- x%*%t(Bq - Bp)
+	ap <- x%*%t((Bq - 2*B3[[2]] + Bp))/ipr
+	tp <- ipr/iqr
 }
 
-for(i in 1:nq){
-	IPR[,i] <- vecq[,i] - vecp[,i]
-	Ap[,i] <- (vecq[,i] - 2*Me + vecp[,i])/IPR[,i]
-	Tp[,i] <- IPR[,i]/IQR
-	if(ci){
-		ipr[[i]] <- x%*%t(Bq[[i]]- Bp[[i]])
-		ap[[i]] <- x%*%t((Bq[[i]] - 2*B3[[2]] + Bp[[i]]))/ipr[[i]]
-		tp[[i]] <- ipr[[i]]/iqr
+val <- list(Me = Me, IQR = IQR, IPR = IPR, Ap = Ap, Tp = Tp)
+if(ci) val$ci <- list(Me = x%*%t(B3[[2]]), IQR = iqr, IPR = ipr, Ap = ap, Tp = tp)
+
+return(val)
+}
+
+qlss.fit.rqt <- function(fitLs, predictLs, fitQ, ci, R, ...){
+
+tau <- fitLs$tau
+fitLs$lambda <- fitLs$lambda.p
+fitLs$delta <- fitLs$delta.p
+fit.p <- if(fitLs$tsf == "mcjII") do.call(tsrq2, args = fitLs) else do.call(tsrq, args = fitLs)
+predictLs <- c(list(object = fit.p), as.list(predictLs))
+vecp <- as.matrix(do.call(predict, args = predictLs))
+if(ci) Bp <- summary(fit.p, se = "boot", R = R, conditional = TRUE, covariance = TRUE)$B
+
+fitLs$tau <- 1 - fitLs$tau
+fitLs$lambda <- fitLs$lambda.q
+fitLs$delta <- fitLs$delta.q
+fit.q <- if(fitLs$tsf == "mcjII") do.call(tsrq2, args = fitLs) else do.call(tsrq, args = fitLs)
+predictLs$object <- fit.q
+vecq <- as.matrix(do.call(predict, args = predictLs))
+if(ci) Bq <- summary(fit.q, se = "boot", R = R, conditional = TRUE, covariance = TRUE)$B
+
+predictLs$object <- fitQ
+vec3 <- as.matrix(do.call(predict, args = predictLs))
+if(ci) B3 <- summary(fitQ, se = "boot", R = R, conditional = TRUE, covariance = TRUE)$B
+
+Me <- as.matrix(vec3[,2])
+IQR <- as.matrix(vec3[,3] - vec3[,1])
+
+n <- if(!is.na(match("newdata", names(predictLs)))) nrow(predictLs[["newdata"]]) else nrow(fit.p$x)
+mpar <- ncol(fit.p$x)
+
+IPR <- vecq - vecp
+Ap <- (vecq - 2*Me + vecp)/IPR
+Tp <- IPR/IQR
+
+me <- iqr <- ipr <- ap <- tp <- matrix(NA, n, R)
+
+if(ci){
+	for(k in 1:R){
+		predictLs$object$coefficients <- matrix(B3[k, ], nrow = mpar)
+		tmp <- as.matrix(do.call(predict, args = predictLs))
+		me[,k] <- tmp[,2]
+		iqr[,k] <- tmp[,3] - tmp[,1]
+	}
+	
+	for(k in 1:R){
+		predictLs$object <- fit.p
+		predictLs$object$coefficients <- matrix(Bp[k, ], nrow = mpar)
+		tmp <- as.matrix(do.call(predict, args = predictLs))
+
+		predictLs$object <- fit.q
+		predictLs$object$coefficients <- matrix(Bq[k, ], nrow = mpar)
+		tmq <- as.matrix(do.call(predict, args = predictLs))
+		
+		ipr[,k] <- tmq - tmp
+		ap[,k] <- (tmq - 2*me[,k] + tmp)/ipr[,k]
+		tp[,k] <- ipr[,k]/iqr[,k]
 	}
 }
-colnames(IPR) <- colnames(Ap) <- colnames(Tp) <- probs
+
+val <- list(Me = Me, IQR = IQR, IPR = IPR, Ap = Ap, Tp = Tp)
+if(ci) val$ci <- list(Me = me, IQR = iqr, IPR = ipr, Ap = ap, Tp = tp)
+
+return(val)
+
+}
+
+qlss.formula <- function(formula, data, type = "rq", tsf = NULL, symm = TRUE, bounded = FALSE, lambda.p = NULL, delta.p = NULL, lambda.q = NULL, delta.q = NULL, probs = 0.1, ci = FALSE, R = 500, predictLs = NULL, ...){
+
+if(any(!probs > 0) | any(!probs < 0.5)) stop("Quantile index out of range: probs must be > 0 and < 0.5")
+if(any(duplicated(probs))) probs <- unique(probs)
+if(type == "rqt" && is.null(tsf)) stop("Specify transformation in 'tsf'")
+nq <- length(probs)
+
+sel <- match("newdata", names(predictLs))
+if(!is.na(sel)){
+	x <- predictLs$newdata
+} else {
+	x <- model.matrix(formula, data)
+}
+n <- nrow(x)
+
+fitLs <- list(formula = formula, data = data, method = "fn")
+fitLs <- c(fitLs, list(...))
+if(type == "rqt"){
+	fitLs$tsf <- tsf
+	fitLs$symm <- symm
+	fitLs$bounded <- bounded
+	if(is.null(lambda.p)) lambda.p <- rep(0, nq) else {if(length(lambda.p)!=nq) stop("'lambda.p' must be the same lenght as 'probs'")}
+	if(is.null(delta.p)) delta.p <- rep(0, nq) else {if(length(delta.p)!=nq) stop("'delta.p' must be the same lenght as 'probs'")}
+	if(is.null(lambda.q)) lambda.q <- rep(0, nq) else {if(length(lambda.q)!=nq) stop("'lambda.q' must be the same lenght as 'probs'")}
+	if(is.null(delta.q)) delta.q <- rep(0, nq) else {if(length(delta.q)!=nq) stop("'delta.q' must be the same lenght as 'probs'")}
+	fitLs$tau <- 1:3/4
+	fitLs$lambda <- seq(0, max(c(2,lambda.p,lambda.q)), by = 0.1)
+	fitLs$delta <- seq(0, max(c(2,delta.p,delta.q)), by = 0.1)
+	fitLs$conditional <- FALSE
+	fitQ <- if(tsf == "mcjII") do.call(tsrq2, args = fitLs) else do.call(tsrq, args = fitLs)
+	fitLs$conditional <- TRUE
+}
+
+Me <- IQR <- IPR <- Ap <- Tp <- matrix(NA, n, nq)
+CI <- list(Me = list(), IQR = list(), IPR = list(), Ap = list(), Tp = list())
+
+for(i in 1:nq){
+
+	fitLs$tau <- probs[i]
+	if(type == "rqt"){
+		fitLs$lambda.p <- lambda.p[i]
+		fitLs$delta.p <- delta.p[i]
+		fitLs$lambda.q <- lambda.q[i]
+		fitLs$delta.q <- delta.q[i]
+	}
+
+	tmp <- switch(type,
+		rq = qlss.fit.rq(fitLs, predictLs, ci = ci, R = R),
+		rqt = qlss.fit.rqt(fitLs, predictLs, fitQ, ci = ci, R = R)
+	)
+
+	Me[,i] <- tmp$Me
+	IQR[,i] <- tmp$IQR
+	IPR[,i] <- tmp$IPR
+	Ap[,i] <- tmp$Ap
+	Tp[,i] <- tmp$Tp
+
+	if (ci){
+		CI$Me[[i]] <- tmp$ci$Me
+		CI$IQR[[i]] <- tmp$ci$IQR
+		CI$IPR[[i]] <- tmp$ci$IPR
+		CI$Ap[[i]] <- tmp$ci$Ap
+		CI$Tp[[i]] <- tmp$ci$Tp
+	}
+}
 
 val <- list(location = list(median = Me), scale = list(IQR = IQR, IPR = IPR), shape = list(skewness = Ap, shape = Tp))
-if(ci) val$ci <- list(Me = x%*%t(B3[[2]]), IQR = iqr, IPR = ipr, Ap = ap, Tp = tp)
+if(ci) val$CI <- CI
+
 class(val) <- "qlss"
 return(val)
 
@@ -243,15 +359,15 @@ sd(u[sel1 & sel2])
 r <- order(z)
 n <- length(z)
 if(ci){
-	if(is.null(x$ci)) stop("Use 'qlss' with 'ci = TRUE' first.") else 
+	if(is.null(x$CI)) stop("Use 'qlss' with 'ci = TRUE' first.") else 
 		{
-		CI <- x$ci
-		#Meq <- t(apply(CI$Me, 1, function(x) quantile(x, probs = level)))
-		tmp <- qt(level, n - 1) * apply(CI$Me, 1, sdtrim)
-		Meq <- cbind(x$location$median - tmp, x$location$median + tmp)
-		#IQRq <- t(apply(CI$IQR, 1, function(x) quantile(x, probs = level)))
-		tmp <- qt(level, n - 1) * apply(CI$IQR, 1, sdtrim)
-		IQRq <- cbind(x$scale$IQR - tmp, x$scale$IQR + tmp)
+		CI <- x$CI
+		#Meq <- t(apply(CI$Me[[which]], 1, function(x) quantile(x, probs = level)))
+		tmp <- qt(level, n - 1) * apply(CI$Me[[which]], 1, sdtrim)
+		Meq <- cbind(x$location$median[,which] - tmp, x$location$median[,which] + tmp)
+		#IQRq <- t(apply(CI$IQR[[which]], 1, function(x) quantile(x, probs = level)))
+		tmp <- qt(level, n - 1) * apply(CI$IQR[[which]], 1, sdtrim)
+		IQRq <- cbind(x$scale$IQR[,which] - tmp, x$scale$IQR[,which] + tmp)
 		#Apq <- t(apply(CI$Ap[[which]], 1, function(x) quantile(x, probs = level)))
 		tmp <- qt(level, n - 1) * apply(CI$Ap[[which]], 1, sdtrim)
 		Apq <- cbind(x$shape$skewness[,which] - tmp, x$shape$skewness[,which] + tmp)
@@ -264,26 +380,26 @@ if(ci){
 }
 
 if(ci){
-	yl1 <- range(c(x$location$median,Meq))
-	yl2 <- range(c(x$scale$IQR,IQRq))
+	yl1 <- range(c(x$location$median[,which],Meq))
+	yl2 <- range(c(x$scale$IQR[,which],IQRq))
 	yl3 <- range(c(x$shape$skewness[,which],Apq))
 	yl4 <- range(c(x$shape$shape[,which],Tpq))
 } else {
-	yl1 <- range(c(x$location$median))
-	yl2 <- range(c(x$scale$IQR))
+	yl1 <- range(c(x$location$median[,which]))
+	yl2 <- range(c(x$scale$IQR[,which]))
 	yl3 <- range(c(x$shape$skewness[,which]))
 	yl4 <- range(c(x$shape$shape[,which]))
 }
 
 par(mfrow = c(2,2))
-plot(z[r], x$location$median[r], ylab = "Median", type = type, ylim = yl1, ...)
+plot(z[r], x$location$median[r,which], ylab = "Median", type = type, ylim = yl1, ...)
 abline(h = 0, col = grey(.5))
 if(ci){
 lines(z[r], Meq[r,1], lty = 2, ...)
 lines(z[r], Meq[r,2], lty = 2, ...)
 }
 
-plot(z[r], x$scale$IQR[r], ylab = "IQR", type = type, ylim = yl2, ...)
+plot(z[r], x$scale$IQR[r,which], ylab = "IQR", type = type, ylim = yl2, ...)
 abline(h = 0, col = grey(.5))
 if(ci){
 lines(z[r], IQRq[r,1], lty = 2, ...)
@@ -1142,7 +1258,7 @@ if (!is.null(attr(x, "na.message")))
 invisible(x)
 }
 
-predict.rqt <- function(object, newdata, na.action = na.pass, raw = TRUE, ...){
+predict.rqt <- function(object, newdata, na.action = na.pass, type = "response", ...){
 
 tau <- object$tau
 nq <- length(tau)
@@ -1170,7 +1286,7 @@ if(missing(newdata)) {x <- object$x} else {
 linpred <- x %*% betahat
 
 Fitted <- matrix(NA, nrow(linpred), ncol(linpred))
-if(!raw){
+if(type == "link"){
 	if(!missing(newdata)) attr(linpred, "x") <- x
 	return(linpred)
 }
@@ -1198,7 +1314,7 @@ return(Fitted)
 
 }
 
-boot.fun <- function(data, inds, object){
+boot.rqt <- function(data, inds, object){
 
 tau <- object$tau
 nq <- length(tau)
@@ -1238,6 +1354,7 @@ if(object$tsf == "mcjII" && flag)  stop("Summary not available. Change to 'se = 
 
 if(conditional){
 	ans <- list()
+	B <- NULL
 	for(j in 1:nq){
 		Args <- list()
 		Args$object <- object[[j]]
@@ -1247,7 +1364,9 @@ if(conditional){
 		nn <- nn[pmatch(names(call), nn, duplicates.ok = FALSE)]
 		nn <- nn[!is.na(nn)]
 		if(length(nn) > 0) {tmp <- as.list(call[[nn]]); names(tmp) <- nn; Args <- c(Args, tmp)}
-		ans[[j]] <- do.call(summary.rq, args = Args)$coefficients
+		tmp <- do.call(summary.rq, args = Args)
+		ans[[j]] <- tmp$coefficients
+		if(!is.null(tmp$B)) B <- cbind(B, tmp$B)
 		if(object$tsf == "mcjII") {
 			tmp <- matrix(NA, nrow = 2, ncol = ncol(ans[[j]]))
 			tmp[,1] <- object$eta[,j]
@@ -1256,13 +1375,14 @@ if(conditional){
 			tmp <- c(object$lambda[j], rep(NA, ncol(ans[[j]]) - 1))
 			names(tmp) <- "lambda"
 		}
-		ans[[j]] <- rbind(ans[[j]], tmp) 
+		ans[[j]] <- rbind(ans[[j]], tmp)
 	}
+	object$B <- B
 } else {
 	if(se == "boot"){
 		Args <- list()
 		Args$data <- object$mf
-		Args$statistic <- boot.fun
+		Args$statistic <- boot.rqt
 		Args$object <- object
 		Args$R <- R
 		Args$sim <- sim
@@ -1426,7 +1546,7 @@ sparsity.rqt <- function(object, se = "nid", hs = TRUE){
     eps <- .Machine$double.eps^(2/3)
 
     vnames <- dimnames(x)[[2]]
-    residm <- sweep(- predict(object, raw = TRUE), 1, y, FUN = "+")
+    residm <- sweep(- predict(object, type = "response"), 1, y, FUN = "+")
     n <- length(y)
     p <- length(coefficients(object, all = TRUE))
     rdf <- n - p
@@ -1463,7 +1583,7 @@ tau <- taus[i]
 		
         bhi <- update(object, tau = tau + h)
         blo <- update(object, tau = tau - h)
-        dyhat <- predict(bhi, raw = TRUE) - predict(blo, raw = TRUE)
+        dyhat <- predict(bhi, type = "response") - predict(blo, type = "response")
         if (any(dyhat <= 0)) 
             warning(paste(sum(dyhat <= 0), "non-positive fis"))
         f <- pmax(0, (2 * h)/(dyhat - eps))
@@ -1761,7 +1881,7 @@ if(isBounded) {
 }
 
 betahat <- as.matrix(object$coefficients)
-linpred <- predict(object, raw = FALSE)
+linpred <- predict(object, type = "link")
 
 x <- object$x
 n <- nrow(x)
@@ -1835,7 +1955,7 @@ else {
 }
 
 betahat <- as.matrix(object$coefficients)
-linpred <- predict(object, newdata, raw = FALSE)
+linpred <- predict(object, newdata, type = "link")
 
 if(missing(newdata)) {x <- object$x}
 	else {x <- attr(linpred, "x")}
@@ -1951,7 +2071,7 @@ return(val)
 ### Restricted quantiles
 ##################################################
 
-rrq <- function(formula, tau, data, method = "fn", model = TRUE, ...){
+rrq <- function(formula, tau, data, subset, weights, na.action, method = "fn", model = TRUE, contrasts = NULL, ...){
 
 call <- match.call()
 mf <- match.call(expand.dots = FALSE)
@@ -1968,8 +2088,9 @@ y <- model.response(mf)
 x <- model.matrix(mt, mf, contrasts)
 
 eps <- .Machine$double.eps^(2/3)
+nq <- length(tau)
 
-if (length(tau) > 1) {
+if (nq > 1) {
         if (any(tau < 0) || any(tau > 1)) 
             stop("invalid tau:  taus should be >= 0 and <= 1")
         if (any(tau == 0)) 
@@ -1978,35 +2099,64 @@ if (length(tau) > 1) {
             tau[tau == 1] <- 1 - eps
 }
 
-nq <- length(tau)
-
-fit.lad <- rq(formula, tau = 0.5, data = data, method = method)
-data$r.lad <- fit.lad$residuals
-data$r.abs <- abs(fit.lad$residuals)
+fit.lad <- {
+if (length(weights)) 
+	rq.wfit(x, y, tau = 0.5, weights, method, ...)
+	else rq.fit(x, y, tau = 0.5, method, ...)
+}
+r.lad <- fit.lad$residuals
+r.abs <- abs(fit.lad$residuals)
 beta <- fit.lad$coefficients
 
-fit.lad <- rq(update.formula(formula, r.abs ~ .), tau = 0.5, data = data, method = method)
-data$s.lad <- fit.lad$fitted
+#fit.lad <- rq(formula, tau = 0.5, data = data, method = method)
+#data$r.lad <- fit.lad$residuals
+#data$r.abs <- abs(fit.lad$residuals)
+#beta <- fit.lad$coefficients
+
+fit.lad <- {
+if (length(weights)) 
+	rq.wfit(x, r.abs, tau = 0.5, weights, method, ...)
+	else rq.fit(x, r.abs, tau = 0.5, method, ...)
+}
+s.lad <- fit.lad$fitted.values
 gamma <- fit.lad$coefficients
 
-zeta <- rq(r.lad ~ s.lad - 1, tau = tau, data = data, method = method)$coefficients
+#fit.lad <- rq(update.formula(formula, r.abs ~ .), tau = 0.5, data = data, method = method)
+#data$s.lad <- fit.lad$fitted
+#gamma <- fit.lad$coefficients
 
-val <- if (length(tau) > 1)
-apply(outer(gamma, zeta, "*"), 3, function(x, b) x + b, b = beta)
-	else beta + zeta * gamma
+zeta <- rep(0, nq)
+for (i in 1:nq) {
+	zeta[i] <- {
+	if (length(weights)) 
+		rq.wfit(matrix(s.lad), matrix(r.lad), tau = tau[i], weights, method, ...)$coefficients
+		else rq.fit(matrix(s.lad), matrix(r.lad), tau = tau[i], method, ...)$coefficients
+	}
+}
 
-fit <- list(coefficients = val, c = zeta, beta = beta, gamma = gamma, tau = tau)
+#zeta <- rq(r.lad ~ s.lad - 1, tau = tau, data = data, method = method)$coefficients
+
+if (nq > 1){
+	coef <- apply(outer(matrix(gamma, nrow = 1), zeta, "*"), 3, function(x, b) x + b, b = beta)
+	taulabs <- paste0("tau = ", format(round(tau, 3)))
+	dimnames(coef) <- list(dimnames(x)[[2]], taulabs)
+} else {
+	coef <- as.numeric(beta + zeta * gamma)
+}
+
+
+fit <- list(coefficients = coef, zeta = zeta, beta = beta, gamma = gamma, tau = tau)
 fit$na.action <- attr(mf, "na.action")
 fit$formula <- formula
 fit$terms <- mt
 fit$xlevels <- .getXlevels(mt, mf)
 fit$call <- call
 fit$weights <- weights
-fit$residuals <- drop(fit$residuals)
 fit$method <- method
 fit$x <- x
 fit$y <- y
-fit$fitted.values <- x %*% val
+fit$fitted.values <- drop(x %*% coef)
+fit$residuals <- drop(y - x %*% coef)
 attr(fit, "na.message") <- attr(m, "na.message")
 if (model)
 	fit$model <- mf
@@ -2014,24 +2164,108 @@ class(fit) <- "rrq"
 return(fit)
 }
 
-rrq.fit <- function(x, y, tau, method = "fn"){
+rrq.fit <- function(x, y, tau, method = "fn", ...){
 
 if(length(tau) > 1) stop("only one quantile")
 
-fit.lad <- rq.fit(x, y, tau = 0.5, method = method)
+fit.lad <- rq.fit(x, y, tau = 0.5, method = method, ...)
 r.lad <- fit.lad$residuals
 r.abs <- abs(fit.lad$residuals)
 beta <- fit.lad$coefficients
 
-fit.lad <- rq.fit(x, r.abs, tau = 0.5, method = method)
+fit.lad <- rq.fit(x, r.abs, tau = 0.5, method = method, ...)
 s.lad <- fit.lad$fitted.values
 gamma <- fit.lad$coefficients
 
-zeta <- rq.fit(s.lad, r.lad, tau = tau, method = method)$coefficients
+zeta <- rq.fit(s.lad, r.lad, tau = tau, method = method, ...)$coefficients
 
 val <- beta + zeta * gamma
 
-return(list(coef = val, c = zeta, beta = beta, gamma = gamma, tau = tau))
+return(list(coefficients = val, zeta = zeta, beta = beta, gamma = gamma, tau = tau))
+}
+
+rrq.wfit <- function(x, y, tau, weights, method = "fn", ...){
+
+if(length(tau) > 1) stop("only one quantile")
+
+fit.lad <- rq.wfit(x, y, tau = 0.5, weights, method = method, ...)
+r.lad <- fit.lad$residuals
+r.abs <- abs(fit.lad$residuals)
+beta <- fit.lad$coefficients
+
+fit.lad <- rq.wfit(x, r.abs, tau = 0.5, weights, method = method, ...)
+s.lad <- fit.lad$fitted.values
+gamma <- fit.lad$coefficients
+
+zeta <- rq.wfit(s.lad, r.lad, tau = tau, weights, method = method, ...)$coefficients
+
+val <- beta + zeta * gamma
+
+return(list(coefficients = val, zeta = zeta, beta = beta, gamma = gamma, tau = tau, weights = weights))
+}
+
+boot.rrq <- function(data, inds, object){
+
+tau <- object$tau
+nq <- length(tau)
+all.obs <- rownames(object$x)
+n <- length(all.obs)
+nn <- dimnames(object$coefficients)[[1]]
+
+fit <- update(object, data = data[inds,])
+val <- fit$coefficients
+
+val <- as.vector(val)
+names(val) <- rep(nn, nq)
+return(val)
+
+}
+
+summary.rrq <- function(object, alpha = 0.05, se = "boot", R = 50, sim = "ordinary", stype = "i", ...){
+
+call <- match.call(expand.dots = TRUE)
+
+tau <- object$tau
+nq <- length(tau)
+ntot <- ncol(object$x)
+
+if(se == "boot"){
+	Args <- list()
+	Args$data <- object$model
+	Args$statistic <- boot.rrq
+	Args$object <- object
+	Args$R <- R
+	Args$sim <- sim
+	Args$stype <- stype
+	nn <- c("strata","L","m","weights","ran.gen","mle","simple","parallel","ncpus","cl")
+	nn <- nn[pmatch(names(call), nn, duplicates.ok = FALSE)]
+	nn <- nn[!is.na(nn)]
+	if(length(nn) > 0) {tmp <- as.list(call[[nn]]); names(tmp) <- nn; Args <- c(Args, tmp)}
+	B <- do.call(boot, args = Args)
+	ci <- mapply(boot.ci, index = 1:(ntot*nq), MoreArgs = list(boot.out = B, conf = 1 - alpha, type = "perc"))[4,]
+	ci <- t(sapply(ci, function(x) x[4:5]))
+
+	S <- cov(B$t, use = "complete.obs")
+	val <- cbind(B$t0, apply(B$t, 2L, mean, na.rm=TRUE) - B$t0, sqrt(diag(S)), ci)
+	nn <- c("Value", "Bias", "Std. Error", "Lower bound", "Upper bound")
+	colnames(val) <- nn
+	
+	maxn <- seq(0, ntot*nq, by = ntot)[-1]
+	minn <- seq(1, ntot*nq, by = ntot)
+	ans <- list()
+	for(j in 1:nq){
+		ans[[j]] <- val[minn[j]:maxn[j], ]
+	}
+	names(ans) <- tau
+	object$B <- B
+} else {ans <- NULL}
+
+
+object$coefficients <- ans
+object$call <- call
+class(object) <- c("summary.rrq", class(object))
+return(object)
+
 }
 
 predict.rrq <- function(object, newdata, na.action = na.pass, ...){
@@ -2052,6 +2286,44 @@ if(missing(newdata)) {x <- object$x} else {
 }
 
 return(x %*% betahat)
+
+}
+
+print.rrq <- function(x, ...){
+
+class(x) <- "rqs"
+print(x, ...)
+
+}
+
+print.summary.rrq <- function(x, ...){
+
+if (!is.null(cl <- x$call)) {
+	cat("call:\n")
+	dput(cl)
+	cat("\n")
+}
+
+tau <- x$tau
+nq <- length(tau)
+mpar <- ncol(x$x)
+
+cat("\nSummary for restricted regression quantiles\n")
+
+for(i in 1:nq){
+cat("\ntau = ", tau[i], "\n")
+
+cat("\nCoefficients linear model:\n")
+print(x$coefficients[[i]][1:mpar,], ...)
+}
+
+nobs <- length(x$y)
+p <- ncol(x$x)
+rdf <- nobs - p
+cat("\nDegrees of freedom:", nobs, "total;", rdf, "residual\n")
+if (!is.null(attr(x, "na.message"))) 
+	cat(attr(x, "na.message"), "\n")
+invisible(x)
 
 }
 
@@ -2312,6 +2584,7 @@ fit$call <- call
 fit$method <- method
 fit$mf <- mf
 fit$x <- x
+fit$y <- y
 fit$weights <- w
 fit$offset <- offset
 fit$tau <- tau
@@ -2354,7 +2627,7 @@ return(object$fitted.values)
 
 }
 
-predict.rq.counts <- function(object, newdata, offset, na.action = na.pass, raw = TRUE, ...) 
+predict.rq.counts <- function(object, newdata, offset, na.action = na.pass, type = "response", ...) 
 {
 
 tsf <- object$tsf
@@ -2373,7 +2646,7 @@ if(missing(newdata)){
 	linpred <- drop(x %*% object$coefficients) + offset
 }
 
-if (!raw) {
+if (type == "link") {
 	if(!missing(newdata)) attr(linpred, "x") <- x
 	return(linpred)
 }
@@ -2387,7 +2660,7 @@ return(Fitted)
 
 residuals.rq.counts <- function(object, ...){
 
-ans <- drop(object$y) - predict(object, raw = TRUE, ...)
+ans <- drop(object$y) - predict(object, type = "response", ...)
 return(ans)
 
 }
@@ -2419,7 +2692,7 @@ symm <- attributes(tsf)$symm
 lambda <- object$lambda
 
 betahat <- as.matrix(object$coefficients)
-linpred <- as.matrix(predict(object, newdata, raw = FALSE))
+linpred <- as.matrix(predict(object, newdata, type = "link"))
 
 if(missing(newdata)) {x <- object$x}
 	else {x <- attr(linpred, "x")}
@@ -2509,14 +2782,16 @@ is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) 
 	
 if(!is.wholenumber(nb) | nb < 2) stop("nb must be an integer >= 2")
 cl <- class(object)
-if(!cl %in% c("rq","rqs","rqt")) stop("Provide a fitted model from 'rq' or 'rqt'.")
+if(!cl %in% c("rq","rqs","rqt","rrq","rq.counts")) stop("Provide an 'rq', 'rqs', 'rqt', 'rrq' or 'rq.counts' object.")
 
 tau <- object$tau
 nq <- length(tau)
+
+x <- if(is.null(object$x)) model.matrix(object$formula, object$model) else object$x
 flag <- attributes(object$terms)$intercept == 1
-x <- if(flag) as.matrix(object$x[,-1]) else as.matrix(object$x)
+x <- if(flag) as.matrix(x[,-1]) else as.matrix(x)
 Rmat <- as.matrix(residuals(object))
-yhat <- fitted(object)
+yhat <- as.matrix(fitted(object))
 
 yhat <- apply(yhat, 2, function(w) {
 		bks <- quantile(w, probs = 0:nb/nb)

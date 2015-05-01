@@ -1,5 +1,6 @@
 \name{rrq}
 \alias{rrq.fit}
+\alias{rrq.wfit}
 \alias{rrq}
 
 \title{
@@ -10,8 +11,10 @@ This function fits a restricted quantile regression model to avoid crossing of q
 }
 
 \usage{
-rrq(formula, tau, data, method = "fn", model = TRUE, ...)
-rrq.fit(x, y, tau, method = "fn")
+rrq(formula, tau, data, subset, weights, na.action, method = "fn",
+model = TRUE, contrasts = NULL, ...)
+rrq.fit(x, y, tau, method = "fn", ...)
+rrq.wfit(x, y, tau, weights, method = "fn", ...)
 }
 
 \arguments{
@@ -30,14 +33,26 @@ the quantile(s) to be estimated.
   \item{data}{
 a data frame in which to interpret the variables named in the formula.
 }
+  \item{subset}{
+an optional vector specifying a subset of observations to be used in the fitting process.
+}
+  \item{weights}{
+an optional vector of weights to be used in the fitting process. Should be NULL or a numeric vector. 
+}
+  \item{na.action}{
+a function which indicates what should happen when the data contain \code{NA}s.
+}
   \item{method}{
 the algorithm used to compute the fit (see \code{\link{rq}}).
 }
   \item{model}{
 if \code{TRUE} then the model frame is returned. This is essential if one wants to call summary subsequently.
 }
+  \item{contrasts}{
+a list giving contrasts for some or all of the factors default = NULL appearing in the model formula. The elements of the list should have the same name as the variable and should be either a contrast matrix (specifically, any full-rank matrix with as many rows as there are levels in the factor), or else a function to compute such a matrix given the number of levels.
+}
   \item{\dots}{
-not used.
+optional arguments passed to \code{rq.fit} or \code{rq.wfit}.
 }
 
 }

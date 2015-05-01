@@ -27,7 +27,7 @@ nlrq2(formula, par = NULL, bounded = FALSE, tau = 0.5, data,
 an object of class "\code{\link{formula}}" (or one that can be coerced to that class): a symbolic description of the model to be fitted. The details of model specification are given under `Details'.
 }
   \item{tsf}{
-transformation to be used. Possible options are \code{mcjI} for Proposal I transformation models (default) of Geraci and Jones, \code{bc} for Box-Cox and \code{ao} for Aranda-Ordaz transformation models (Dehbi, Cortina-Borja, Geraci).
+transformation to be used. Possible options are \code{mcjI} for Proposal I transformation models (default), \code{bc} for Box-Cox and \code{ao} for Aranda-Ordaz transformation models.
 }
   \item{symm}{
 logical flag. If \code{TRUE} (default) a symmetric transformation is used.
@@ -68,7 +68,7 @@ other arguments in \code{\link{summary.rq}}).
 }
 
 \details{
-These functions implement quantile regression transformation models as discussed by Geraci and Jones (see references). The general model is assumed to be \emph{Q(h(response)) = xb}, where \emph{Q} is the conditional quantile function and \emph{h} is a one- or two-parameter transformation. A typical model specified in \code{formula} has the form \code{response ~ terms} where \code{response} is the (numeric) response vector and \code{terms} is a series of terms which specifies a linear predictor for the quantile of the transformed response. The \code{response}, which is singly or doubly bounded, i.e. \code{response > 0} or \code{0 <= response <= 1} respectively, undergoes the transformation specified in \code{tsf}. If the response is bounded in the generic [a,b] interval, the latter is automatically mapped to [0,1] and no further action is required. If, however, the response is singly bounded and contains negative values, it is left to the user to offset the response or the code will produce an error. The functions \code{tsrq} and \code{tsrq2} use a two-stage (TS) estimator (Fitzenberger et al, 2010) for, respectively, one- and two-parameter transformations. The function \code{rcrq} (one-parameter tranformations) is based on the residual cusum process estimator proposed by Mu and He (2007), while the function \code{nlrq2} (two-parameter tranformations) is based on Nelder-Mean optimization (Geraci and Jones).
+These functions implement quantile regression transformation models as discussed by Geraci and Jones (see references). The general model is assumed to be \emph{Q(h(response)) = xb}, where \emph{Q} is the conditional quantile function and \emph{h} is a one- or two-parameter transformation. A typical model specified in \code{formula} has the form \code{response ~ terms} where \code{response} is the (numeric) response vector and \code{terms} is a series of terms which specifies a linear predictor for the quantile of the transformed response. The \code{response}, which is singly or doubly bounded, i.e. \code{response > 0} or \code{0 <= response <= 1} respectively, undergoes the transformation specified in \code{tsf}. If the response is bounded in the generic [a,b] interval, the latter is automatically mapped to [0,1] and no further action is required. If, however, the response is singly bounded and contains negative values, it is left to the user to offset the response or the code will produce an error. The functions \code{tsrq} and \code{tsrq2} use a two-stage (TS) estimator (Fitzenberger et al, 2010) for, respectively, one- and two-parameter transformations. The function \code{rcrq} (one-parameter tranformations) is based on the residual cusum process estimator proposed by Mu and He (2007), while the function \code{nlrq2} (two-parameter tranformations) is based on Nelder-Mead optimization (Geraci and Jones).
 }
 
 \value{
@@ -102,7 +102,7 @@ Aranda-Ordaz FJ. On two families of transformations to additivity for binary res
 
 Box GEP, Cox DR. An analysis of transformations. Journal of the Royal Statistical Society Series B-Statistical Methodology 1964;26(2):211-252.
 
-Dehbi H-M, Cortina-Borja M, Geraci M. Aranda-Ordaz quantile regression for student performance assessment. Unpublished Manuscript.
+Dehbi H-M, Cortina-Borja M, Geraci M. Aranda-Ordaz quantile regression for student performance assessment. Journal of Applied Statistics 2015. \url{http://dx.doi.org/10.1080/02664763.2015.1025724}
 
 Fitzenberger B, Wilke R, Zhang X. Implementing Box-Cox quantile regression. Econometric Reviews 2010;29(2):158-181.
 
@@ -128,6 +128,7 @@ Marco Geraci
 data(trees)
 
 \dontrun{
+require(MASS)
 
 dx <- 0.01
 
