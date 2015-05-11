@@ -1,16 +1,13 @@
 Package: Qtools
 Type: Package
-Title: Utilities for quantilies
+Title: Utilities for Quantiles
 Version: 1.0
-Date: 2015-04-29
+Date: 2015-05-20
 Author: Marco Geraci
 Maintainer: Marco Geraci <geraci@mailbox.sc.edu>
 Depends: R (>= 3.0.0)
 Imports: quantreg, mice, boot, MASS
 Suggests: survey
-Description: Collection of functions for unconditional and conditional quantiles
+Description: This is a collection of functions for unconditional and conditional quantiles
 License: GPL (>= 2)
 LazyLoad: yes
-Repository: R-Forge
-Repository/R-Forge/Project: qtools
-Repository/R-Forge/Revision: 7

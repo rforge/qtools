@@ -19,8 +19,8 @@
 \alias{powrecbase}
 \alias{map}
 \alias{invmap}
-\alias{qlss.fit.rq}
-\alias{qlss.fit.rqt}
+\alias{qlssFit.rq}
+\alias{qlssFit.rqt}
 \alias{invmap}
 \alias{rcLoss}
 \alias{l1Loss}

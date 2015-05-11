@@ -1,5 +1,4 @@
 \name{fitted.rq.counts}
-\alias{fitted.values.rq.counts}
 \alias{fitted.rq.counts}
 
 \title{
@@ -12,7 +11,6 @@ This function extracts fitted values from objects of class \code{rq.counts}.
 
 \usage{
 \method{fitted}{rq.counts}(object, ...)
-\method{fitted.values}{rq.counts}(object, ...)
 }
 
 \arguments{

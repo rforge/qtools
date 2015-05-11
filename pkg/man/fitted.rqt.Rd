@@ -1,5 +1,4 @@
 \name{fitted.rqt}
-\alias{fitted.values.rqt}
 \alias{fitted.rqt}
 
 \title{
@@ -12,7 +11,6 @@ This function extracts fitted values from objects of class \code{rqt}.
 
 \usage{
 \method{fitted}{rqt}(object, ...)
-\method{fitted.values}{rqt}(object, ...)
 }
 
 \arguments{

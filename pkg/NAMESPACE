@@ -4,23 +4,39 @@ import(boot)
 import(MASS)
 
 exportPattern("^[^\\.]")
+
 S3method(coef, rq.counts)
 S3method(coef, rqt)
+
 S3method(fitted, rqt)
 S3method(fitted, rq.counts)
+
 S3method(maref, rqt)
 S3method(maref, rq.counts)
+
+S3method(plot, qlss)
+
 S3method(predict, rrq)
 S3method(predict, rqt)
 S3method(predict, rq.counts)
+
 S3method(print, GOFTest)
 S3method(print, rrq)
 S3method(print, rqt)
 S3method(print, rq.counts)
+S3method(print, summary.rqt)
+S3method(print, summary.rrq)
+
+S3method(qlss, default)
+S3method(qlss, formula)
+S3method(qlss, numeric)
+
 S3method(residuals, rqt)
 S3method(residuals, rq.counts)
+
 S3method(sparsity, rq)
 S3method(sparsity, rqs)
 S3method(sparsity, rqt)
+
 S3method(summary, rrq)
 S3method(summary, rqt)

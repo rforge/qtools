@@ -156,7 +156,7 @@ class(val) <- "qlss"
 return(val)
 }
 
-qlss.fit.rq <- function(fitLs, predictLs, ci, R, ...){
+qlssFit.rq <- function(fitLs, predictLs, ci, R, ...){
 
 fit <- do.call(rq, args = fitLs)
 predictLs <- c(list(object = fit), as.list(predictLs))
@@ -208,7 +208,7 @@ if(ci) val$ci <- list(Me = x%*%t(B3[[2]]), IQR = iqr, IPR = ipr, Ap = ap, Tp = t
 return(val)
 }
 
-qlss.fit.rqt <- function(fitLs, predictLs, fitQ, ci, R, ...){
+qlssFit.rqt <- function(fitLs, predictLs, fitQ, ci, R, ...){
 
 tau <- fitLs$tau
 fitLs$lambda <- fitLs$lambda.p
@@ -319,8 +319,8 @@ for(i in 1:nq){
 	}
 
 	tmp <- switch(type,
-		rq = qlss.fit.rq(fitLs, predictLs, ci = ci, R = R),
-		rqt = qlss.fit.rqt(fitLs, predictLs, fitQ, ci = ci, R = R)
+		rq = qlssFit.rq(fitLs, predictLs, ci = ci, R = R),
+		rqt = qlssFit.rqt(fitLs, predictLs, fitQ, ci = ci, R = R)
 	)
 
 	Me[,i] <- tmp$Me
@@ -1481,7 +1481,7 @@ invisible(x)
 
 }
 
-fitted.rqt <- fitted.values.rqt <- function(object, ...){
+fitted.rqt <- function(object, ...){
 
 return(object$fitted.values)
 
@@ -2621,7 +2621,7 @@ return(ans)
 
 }
 
-fitted.rq.counts <- fitted.values.rq.counts <- function(object, ...){
+fitted.rq.counts <- function(object, ...){
 
 return(object$fitted.values)
 
