@@ -287,28 +287,31 @@ if(!is.na(sel)){
 }
 n <- nrow(x)
 
-fitLs <- list(formula = formula, data = data, method = "fn")
-fitLs <- c(fitLs, list(...))
 if(type == "rqt"){
-	fitLs$tsf <- tsf
-	fitLs$symm <- symm
-	fitLs$bounded <- bounded
 	if(is.null(lambda.p)) lambda.p <- rep(0, nq) else {if(length(lambda.p)!=nq) stop("'lambda.p' must be the same lenght as 'probs'")}
 	if(is.null(delta.p)) delta.p <- rep(0, nq) else {if(length(delta.p)!=nq) stop("'delta.p' must be the same lenght as 'probs'")}
 	if(is.null(lambda.q)) lambda.q <- rep(0, nq) else {if(length(lambda.q)!=nq) stop("'lambda.q' must be the same lenght as 'probs'")}
 	if(is.null(delta.q)) delta.q <- rep(0, nq) else {if(length(delta.q)!=nq) stop("'delta.q' must be the same lenght as 'probs'")}
-	fitLs$tau <- 1:3/4
-	fitLs$lambda <- seq(0, max(c(2,lambda.p,lambda.q)), by = 0.1)
-	fitLs$delta <- seq(0, max(c(2,delta.p,delta.q)), by = 0.1)
-	fitLs$conditional <- FALSE
-	fitQ <- if(tsf == "mcjII") do.call(tsrq2, args = fitLs) else do.call(tsrq, args = fitLs)
-	fitLs$conditional <- TRUE
 }
+
+fitLs <- list(formula = formula, data = data, method = "fn")
+fitLs <- c(fitLs, list(...))
 
 Me <- IQR <- IPR <- Ap <- Tp <- matrix(NA, n, nq)
 CI <- list(Me = list(), IQR = list(), IPR = list(), Ap = list(), Tp = list())
 
 for(i in 1:nq){
+
+	if(type == "rqt"){
+		fitLs$tsf <- tsf
+		fitLs$symm <- symm
+		fitLs$bounded <- bounded
+		fitLs$tau <- 1:3/4
+		fitLs$lambda <- rep(lambda.p[i], 3)
+		fitLs$delta <- rep(delta.p[i], 3)
+		fitLs$conditional <- TRUE
+		fitQ <- if(tsf == "mcjII") do.call(tsrq2, args = fitLs) else do.call(tsrq, args = fitLs)
+	}
 
 	fitLs$tau <- probs[i]
 	if(type == "rqt"){
@@ -2429,6 +2432,167 @@ mice.impute.rrq <- function (y, ry, x, tsf = "none", symm = TRUE, bounded = FALS
 	} else {val <- ypred}
 
     return(val)
+}
+
+##################################################
+### Binary QR
+##################################################
+
+rqbinLoss <- function(b, y, x, w, sigma, tau, kernel = "Gaussian"){
+
+n <- length(y)
+z <- y - switch(kernel,
+		Gaussian = pnorm(x%*%b/sigma)
+		)
+l1Loss(z, tau, w)
+}
+
+rq.bin <- function(formula, data, tsf = "bc", weights = NULL, contrasts = NULL, tau = 0.5, method = "fn") 
+{
+nq <- length(tau)
+if (nq > 1) 
+	stop("One quantile at a time")
+
+call <- match.call()
+mf <- match.call(expand.dots = FALSE)
+m <- match(c("formula", "data", "weights"), names(mf), 0L)
+mf <- mf[c(1L, m)]
+mf$drop.unused.levels <- TRUE
+mf[[1L]] <- as.name("model.frame")
+mf <- eval(mf, parent.frame())
+mt <- attr(mf, "terms")
+
+y <- model.response(mf, "numeric")
+w <- as.vector(model.weights(mf))
+if (!is.null(w) && !is.numeric(w)) 
+  stop("'weights' must be a numeric vector")
+if(is.null(w))
+  w <- rep(1/length(y), length(y))
+x <- model.matrix(mt, mf, contrasts)
+p <- ncol(x)
+n <- nrow(x)
+term.labels <- colnames(x)
+
+# Add noise
+Z <- replicate(M, addnoise(y, centered = FALSE, B = B))
+
+# Transform Z
+TZ <- apply(Z, 2, function(x, off, tsf, symm, lambda, tau, zeta){
+	z <- ifelse((x - tau) > zeta, x - tau, zeta);
+	switch(tsf,
+		mcjI = mcjI(z, lambda, symm, bounded = FALSE, omega = 0.001),
+		bc = bc(z, lambda)) - off
+	}, off = offset, tsf = tsf, symm = symm, lambda = lambda, tau = tau, zeta = zeta)
+
+# Fit linear QR on TZ
+fit <- apply(TZ, 2, function(y, x, weights, tau, method) 
+	rq.wfit(x = x, y = y, tau = tau, weights = weights, method = method), x = x, tau = tau, weights = w, method = method)
+	
+# predicted values
+yhat <- sapply(fit, function(obj, x) x %*% obj$coefficients, x = x)
+yhat <- as.matrix(yhat)
+
+# sweep offset back in
+linpred <- sweep(yhat, 1, offset, "+")
+
+# back-transform + offset tau
+zhat <- matrix(NA, n, M)
+for(i in 1:M){
+zhat[,i] <- tau + switch(tsf,
+	mcjI = invmcjI(linpred[,i], lambda, symm, bounded = FALSE),
+	bc = invbc(linpred[,i], lambda))
+}
+	
+# covariance matrix
+if(is.null(cn)) cn <- 0.5 * log(log(n))/sqrt(n)
+F <- apply(zhat, 2, Fvec, cn = cn)
+Fp <- apply(zhat + 1, 2, Fvec, cn = cn)
+
+multiplier <- (tau - (TZ <= yhat))^2
+a <- array(NA, dim = c(p, p, M))
+for (i in 1:M) a[, , i] <- t(x * multiplier[, i]) %*% x/n
+
+multiplier <- tau^2 + (1 - 2 * tau) * (y <= (zhat - 1)) + 
+	((zhat - y) * (zhat - 1 < y & y <= zhat)) * (zhat - y - 
+		2 * tau)
+b <- array(NA, dim = c(p, p, M))
+for (i in 1:M) b[, , i] <- t(x * multiplier[, i]) %*% x/n
+
+multiplier <- (zhat - tau) * (F <= Z & Z < Fp)
+d <- array(NA, dim = c(p, p, M))
+sel <- rep(TRUE, M)
+for (i in 1:M) {
+	tmpInv <- try(solve(t(x * multiplier[, i]) %*% x/n), 
+		silent = TRUE)
+	if (class(tmpInv) != "try-error") 
+		{d[, , i] <- tmpInv}
+	else {sel[i] <- FALSE}
+}
+    
+dad <- 0
+dbd <- 0
+for (i in (1:M)[sel]) {
+	dad <- dad + d[, , i] %*% a[, , i] %*% d[, , i]
+	dbd <- dbd + d[, , i] %*% b[, , i] %*% d[, , i]
+}
+    
+m.n <- sum(sel)
+if (m.n != 0) {
+	V <- dad/(m.n^2) + (1 - 1/m.n) * dbd * 1/m.n
+	V <- V/n ## CHECK V AND WEIGHTS
+	stds <- sqrt(diag(V))
+	} else {
+	stds <- NA
+	warning("Standard error not available")
+	}
+
+betahat <- sapply(fit, function(x) x$coefficients)
+betahat <- if (p == 1) mean(betahat) else rowMeans(betahat)
+
+linpred <- if (p == 1) {
+	mean(linpred[1, ])
+} else {
+	rowMeans(linpred)
+}
+
+Fitted <- tau + switch(tsf,
+	mcjI = invmcjI(linpred, lambda, symm, bounded = FALSE),
+	bc = invbc(linpred, lambda))
+
+lower <- betahat + qt(alpha/2, n - p) * stds
+upper <- betahat + qt(1 - alpha/2, n - p) * stds
+tP <- 2 * pt(-abs(betahat/stds), n - p)
+
+ans <- cbind(betahat, stds, lower, upper, tP)
+colnames(ans) <- c("Value", "Std. Error", "lower bound", "upper bound", "Pr(>|t|)")
+rownames(ans) <- names(betahat) <- term.labels
+
+fit <- list()
+fit$call <- call
+fit$method <- method
+fit$mf <- mf
+fit$x <- x
+fit$y <- y
+fit$weights <- w
+fit$offset <- offset
+fit$tau <- tau
+fit$lambda <- lambda
+fit$tsf <- tsf
+attr(fit$tsf, "symm") <- symm
+fit$coefficients <- betahat
+fit$M <- M
+fit$Mn <- m.n
+fit$fitted.values <- Fitted
+fit$tTable <- ans
+fit$Cov <- V
+fit$levels <- .getXlevels(mt, mf)
+fit$terms <- mt
+fit$term.labels <- term.labels
+fit$rdf <- n - p
+
+class(fit) <- "rq.bin"
+	
+return(fit)
 }
 
 
