@@ -15,7 +15,7 @@ This function calculates quantile-based summary statistics for location, scale a
 \usage{
 qlss(...)
 \method{qlss}{default}(fun = "qnorm", probs = 0.1, ...)
-\method{qlss}{formula}(formula, data, type = "rq", tsf = NULL, symm = TRUE, bounded = FALSE,
+\method{qlss}{formula}(formula, data, type = "rq", tsf = NULL, symm = TRUE, dbounded = FALSE,
 lambda.p = NULL, delta.p = NULL, lambda.q = NULL, delta.q = NULL,
 probs = 0.1, ci = FALSE, R = 500, predictLs = NULL, ...)
 \method{qlss}{numeric}(x, probs = 0.1, ...)
@@ -43,7 +43,7 @@ transformation to be used. Possible options are \code{mcjI} for Proposal I trans
   \item{symm}{
 logical flag. If \code{TRUE} (default) a symmetric transformation is used.
 }
-  \item{bounded}{
+  \item{dbounded}{
 logical flag. If \code{TRUE} the response is assumed to be doubly bounded on [a,b]. If \code{FALSE} the response is assumed to be singly bounded (ie, strictly positive).
 }
   \item{lambda.p, delta.p}{
@@ -122,4 +122,6 @@ plot(fit, z = trees2$Height, xlab = "height")
 \code{\link{rq}}, \code{\link{tsrq}}, \code{\link{tsrq2}}
 }
 
-\keyword{ location-scale-shape }
+\keyword{conditional quantiles}
+\keyword{unconditional quantiles}
+\keyword{location-scale-shape}

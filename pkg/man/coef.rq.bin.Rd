@@ -1,23 +1,23 @@
-\name{coef.rq.counts}
-\alias{coefficients.rq.counts}
-\alias{coef.rq.counts}
+\name{coef.rq.bin}
+\alias{coefficients.rq.bin}
+\alias{coef.rq.bin}
 
 \title{
 Extract Coefficients
 }
 
 \description{
-\code{coef} extracts model coefficients from \code{rq.counts} objects.
+\code{coef} extracts model coefficients from \code{rq.bin} objects.
 }
 
 \usage{
-\method{coef}{rq.counts}(object, ...)
-\method{coefficients}{rq.counts}(object, ...)
+\method{coef}{rq.bin}(object, ...)
+\method{coefficients}{rq.bin}(object, ...)
 }
 
 \arguments{
   \item{object}{
-an \code{rq.counts} object.
+an \code{rq.bin} object.
 }
   \item{\dots}{
 not used.
@@ -33,7 +33,7 @@ Marco Geraci
 }
 
 \seealso{
-\code{\link{rq.counts}}
+\code{\link{rq.bin}}
 }
 
 \keyword{coefficients}

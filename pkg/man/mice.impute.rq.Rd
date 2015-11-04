@@ -11,9 +11,9 @@ This function is used to multiply impute missing values using quantile regressio
 }
 
 \usage{
-mice.impute.rq(y, ry, x, tsf = "none", symm = TRUE,	bounded = FALSE,
+mice.impute.rq(y, ry, x, tsf = "none", symm = TRUE,	dbounded = FALSE,
 	lambda = NULL, epsilon = 0.001, method.rq = "fn", ...)
-mice.impute.rrq(y, ry, x, tsf = "none", symm = TRUE, bounded = FALSE,
+mice.impute.rrq(y, ry, x, tsf = "none", symm = TRUE, dbounded = FALSE,
 	lambda = NULL, epsilon = 0.001, method.rq = "fn", ...)
 }
 
@@ -33,7 +33,7 @@ transformation to be used. Possible options are \code{mcjI} for Proposal I, \cod
   \item{symm}{
 logical flag. If \code{TRUE} (default) a symmetric transformation is used.
 }
-  \item{bounded}{
+  \item{dbounded}{
 logical flag. If \code{TRUE} the response \code{y} is assumed to be bounded between 0 and 1.
 }
   \item{lambda}{

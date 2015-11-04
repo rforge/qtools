@@ -21,10 +21,10 @@ ao(theta, lambda, symm = TRUE, omega = 0.001)
 invao(x, lambda, symm = TRUE, replace = TRUE)
 bc(x, lambda)
 invbc(x, lambda, replace = TRUE)
-mcjI(x, lambda, symm = TRUE, bounded = FALSE, omega = 0.001)
-invmcjI(x, lambda, symm = TRUE, bounded = FALSE)
-mcjII(x, lambda, delta, bounded = FALSE, omega = 0.001)
-invmcjII(x, lambda, delta, bounded = FALSE)
+mcjI(x, lambda, symm = TRUE, dbounded = FALSE, omega = 0.001)
+invmcjI(x, lambda, symm = TRUE, dbounded = FALSE)
+mcjII(x, lambda, delta, dbounded = FALSE, omega = 0.001)
+invmcjII(x, lambda, delta, dbounded = FALSE)
 }
 
 \arguments{
@@ -37,7 +37,7 @@ transformation parameters.
   \item{symm}{
 logical flag. If \code{TRUE} (default) a symmetric transformation is used.
 }
-  \item{bounded}{
+  \item{dbounded}{
 logical flag. If \code{TRUE} the argument \code{x} is assumed to be bounded between 0 and 1.
 }
   \item{omega}{

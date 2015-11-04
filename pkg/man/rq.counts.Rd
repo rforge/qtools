@@ -7,8 +7,8 @@ Quantile Regression for Counts}
 This function is used to fit a quantile regression model when the response is a count variable.
 }
 \usage{
-rq.counts(formula, data, tsf = "bc", symm = TRUE, lambda = 0,
-	weights = NULL, offset = NULL, contrasts = NULL, tau = 0.5,
+rq.counts(formula, tau = 0.5, data, tsf = "bc", symm = TRUE,
+	lambda = 0,	weights = NULL, offset = NULL, contrasts = NULL,
 	M = 50, zeta = 1e-05, B = 0.999, cn = NULL, alpha = 0.05,
 	method = "fn")
 }
@@ -16,6 +16,9 @@ rq.counts(formula, data, tsf = "bc", symm = TRUE, lambda = 0,
 \arguments{
   \item{formula}{
 an object of class \code{\link{formula}}: a symbolic description of the model to be fitted.
+}
+  \item{tau}{
+quantile to be estimated.
 }
   \item{data}{
 an optional data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model. If not found in data, the variables are taken from environment(formula), typically the environment from which lqm is called.
@@ -39,9 +42,6 @@ an optional offset to be included in the model frame.
 
   \item{contrasts}{
 an optional list. See the \code{contrasts.arg} of \code{\link{model.matrix.default}}.
-}
-  \item{tau}{
-quantile to be estimated.
 }
   \item{M}{
 number of dithered samples.
@@ -67,7 +67,7 @@ estimation method for the fitting process. See \code{\link{rq}}.
 
 }
 
-\details{A linear quantile regression model if fitted to the log--transformed response. Additional tranformation functions will be implemented. The notation used here follows closely that of Machado and Santos Silva (2005). This function is based on routines from package \code{quantreg} (Koenker, 2013). See also \code{lqm.counts} from package \code{lqmm} (Geraci, 2014) for Laplace gradient estimation.} 
+\details{A linear quantile regression model is fitted to the log--transformed response. Additional tranformation functions will be implemented. The notation used here follows closely that of Machado and Santos Silva (2005). This function is based on routines from package \code{quantreg} (Koenker, 2013). See also \code{lqm.counts} from package \code{lqmm} (Geraci, 2014) for Laplace gradient estimation.} 
 
 \value{
 a list of class \code{rq.counts} containing the following components

@@ -50,5 +50,5 @@ Marco Geraci
 \code{\link{tsrq}}
 }
 
-\keyword{ prediction }
+\keyword{predict}
 

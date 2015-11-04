@@ -6,7 +6,7 @@ Predictions from rq.counts Objects
 }
 
 \description{
-This function computes predictions based on fitted linear quantile model.
+This function computes predictions based on fitted linear quantile models.
 }
 
 \usage{
@@ -61,4 +61,4 @@ cbind(fit$fitted.values, predict(fit, type = "response"))
 \code{\link{residuals.rq.counts}}, \code{\link{rq.counts}}, \code{\link{coef.rq.counts}}
 }
 
-\keyword{prediction}
+\keyword{predict}

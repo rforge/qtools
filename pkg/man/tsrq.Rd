@@ -11,14 +11,14 @@ Quantile Regression Transformation Models
 These functions are used to fit quantile regression transformation models.
 }
 \usage{
-tsrq(formula, tsf = "mcjI", symm = TRUE, bounded = FALSE, lambda = NULL,
+tsrq(formula, tsf = "mcjI", symm = TRUE, dbounded = FALSE, lambda = NULL,
 	conditional = FALSE, tau = 0.5, data, subset, weights, na.action,
 	method = "fn", ...)
-tsrq2(formula, bounded = FALSE, lambda = NULL, delta = NULL, conditional = FALSE,
+tsrq2(formula, dbounded = FALSE, lambda = NULL, delta = NULL, conditional = FALSE,
 	tau = 0.5, data, subset, weights, na.action, method = "fn", ...)
-rcrq(formula, tsf = "mcjI", symm = TRUE, bounded = FALSE, lambda = NULL,
+rcrq(formula, tsf = "mcjI", symm = TRUE, dbounded = FALSE, lambda = NULL,
 	tau = 0.5, data, subset, weights, na.action, method = "fn", ...)
-nlrq2(formula, par = NULL, bounded = FALSE, tau = 0.5, data,
+nlrq2(formula, par = NULL, dbounded = FALSE, tau = 0.5, data,
 	subset, weights, na.action, ...)
 }
 
@@ -32,8 +32,8 @@ transformation to be used. Possible options are \code{mcjI} for Proposal I trans
   \item{symm}{
 logical flag. If \code{TRUE} (default) a symmetric transformation is used.
 }
-  \item{bounded}{
-logical flag. If \code{TRUE} the response is assumed to be doubly bounded on [a,b]. If \code{FALSE} the response is assumed to be singly bounded (ie, strictly positive).
+  \item{dbounded}{
+logical flag. If \code{TRUE} the response is assumed to be doubly bounded on [a,b]. If \code{FALSE} (default) the response is assumed to be singly bounded (ie, strictly positive).
 }
   \item{lambda, delta}{
 values of transformation parameters for grid search.
@@ -78,7 +78,7 @@ These functions implement quantile regression transformation models as discussed
 \item{call}{the matched call.}
 \item{method}{the fitting algorithm for \code{rq} or \code{optim}.}
 \item{y}{the response -- untransformed scale.}
-\item{theta}{if \code{bounded = TRUE}, the response mapped to the unit interval.}
+\item{theta}{if \code{dbounded = TRUE}, the response mapped to the unit interval.}
 \item{x}{the model matrix.}
 \item{weights}{the weights used in the fitting process (a vector of 1's if \code{weights} is missing or \code{NULL}).}
 \item{tau}{the order of the estimated quantile(s).}
@@ -152,9 +152,9 @@ lambdas <- list(bc = seq(-10, 10, by=dx),
 taus <- 1:3/4
 fit0 <- tsrq(y ~ x, tsf = "bc", symm = FALSE, data = trees,
 	lambda = lambdas$bc, tau = taus)
-fit1 <- tsrq(y ~ x, tsf = "mcjI", symm = TRUE, bounded = FALSE,
+fit1 <- tsrq(y ~ x, tsf = "mcjI", symm = TRUE, dbounded = FALSE,
 	data = trees, lambda = lambdas$mcjIs, tau = taus)
-fit2 <- tsrq(y ~ x, tsf = "mcjI", symm = FALSE, bounded = FALSE,
+fit2 <- tsrq(y ~ x, tsf = "mcjI", symm = FALSE, dbounded = FALSE,
 	data = trees, lambda = lambdas$mcjIa, tau = taus)
 
 
@@ -217,15 +217,15 @@ tsrq(score ~ gcse, tsf = "ao", symm = TRUE, lambda = seq(0,2,by=0.01),
 	tau = 0.9, data = chemsub)
 
 # Fit symmetric Proposal I quantile 0.9
-tsrq(score ~ gcse, tsf = "mcjI", symm = TRUE, bounded = TRUE,
+tsrq(score ~ gcse, tsf = "mcjI", symm = TRUE, dbounded = TRUE,
 	lambda = seq(0,2,by=0.01), tau = 0.9, data = chemsub)
 
 # Fit Proposal II quantile 0.9 (Nelder-Mead)
-nlrq2(score ~ gcse, bounded = TRUE, tau = 0.9, data = chemsub)
+nlrq2(score ~ gcse, dbounded = TRUE, tau = 0.9, data = chemsub)
 
 # Fit Proposal II quantile 0.9 (grid search)
 # This is slower than nlrq2 but more stable numerically
-tsrq2(score ~ gcse, bounded = TRUE, lambda = seq(0, 2, by = 0.1),
+tsrq2(score ~ gcse, dbounded = TRUE, lambda = seq(0, 2, by = 0.1),
 	delta = seq(0, 2, by = 0.1), tau = 0.9, data = chemsub)
 
 }
@@ -276,18 +276,18 @@ box()
 taus <- c(1:3/4)
 ls <- seq(0,3.5,by=0.1)
 
-fit.aos <- tsrq(y ~ x*treatment, tsf = "ao", symm = TRUE, bounded = TRUE,
+fit.aos <- tsrq(y ~ x*treatment, tsf = "ao", symm = TRUE, dbounded = TRUE,
 	data = new, tau = taus, lambda = ls)
-fit.aoa <- tsrq(y ~ x*treatment, tsf = "ao", symm = FALSE, bounded = TRUE,
+fit.aoa <- tsrq(y ~ x*treatment, tsf = "ao", symm = FALSE, dbounded = TRUE,
 	data = new, tau = taus, lambda = ls)
-fit.mcjs <- tsrq(y ~ x*treatment, tsf = "mcjI", symm = TRUE, bounded = TRUE,
+fit.mcjs <- tsrq(y ~ x*treatment, tsf = "mcjI", symm = TRUE, dbounded = TRUE,
 	data = new, tau = taus, lambda = ls)
-fit.mcja <- tsrq(y ~ x*treatment, tsf = "mcjI", symm = FALSE, bounded = TRUE,
+fit.mcja <- tsrq(y ~ x*treatment, tsf = "mcjI", symm = FALSE, dbounded = TRUE,
 	data = new, tau = taus, lambda = ls)
-fit.mcj2 <- tsrq2(y ~ x*treatment, bounded = TRUE, data = new, tau = taus,
+fit.mcj2 <- tsrq2(y ~ x*treatment, dbounded = TRUE, data = new, tau = taus,
 	lambda = seq(0,2,by=0.1), delta = seq(0,1.5,by=0.3))
 fit.nlrq <- nlrq2(y ~ x*treatment, par = coef(fit.mcj2, all = TRUE)[,1],
-	bounded = TRUE, data = new, tau = taus)
+	dbounded = TRUE, data = new, tau = taus)
 
 sel <- 0
 selx <- if(sel == 1) "a" else "b"
@@ -352,5 +352,5 @@ box()
 \code{\link{predict.rqt}}, \code{\link{summary.rqt}}
 }
 
-\keyword{ transformations }
+\keyword{transformations}
 \keyword{conditional quantiles}

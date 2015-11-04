@@ -1,10 +1,10 @@
 \name{Qtools-package}
 \alias{Qtools-package}
 \docType{package}
-\title{Utilities for quantilies}
+\title{Utilities for Quantilies}
 
 \description{
-Collection of functions for unconditional and conditional quantiles
+Thi is a collection of functions for unconditional and conditional quantiles
 }
 
 \details{
@@ -12,7 +12,7 @@ Collection of functions for unconditional and conditional quantiles
 Package: \tab Qtools\cr
 Type: \tab Package\cr
 Version: \tab 1.0\cr
-Date: \tab 2015-05-20\cr
+Date: \tab 2015-10-15\cr
 License: \tab GPL (>=2)\cr
 LazyLoad: \tab yes\cr
 }

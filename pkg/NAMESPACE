@@ -1,14 +1,19 @@
-import(quantreg)
-import(mice)
-import(boot)
-import(MASS)
+useDynLib("Qtools")
+importFrom("utils", "packageDescription")
+import("stats")
+import("MASS")
+import("quantreg")
+import("mice")
+import("boot")
 
 exportPattern("^[^\\.]")
 
-S3method(coef, rq.counts)
 S3method(coef, rqt)
+S3method(coef, rq.bin)
+S3method(coef, rq.counts)
 
 S3method(fitted, rqt)
+S3method(fitted, rq.bin)
 S3method(fitted, rq.counts)
 
 S3method(maref, rqt)
@@ -18,11 +23,13 @@ S3method(plot, qlss)
 
 S3method(predict, rrq)
 S3method(predict, rqt)
+S3method(predict, rq.bin)
 S3method(predict, rq.counts)
 
 S3method(print, GOFTest)
 S3method(print, rrq)
 S3method(print, rqt)
+S3method(print, rq.bin)
 S3method(print, rq.counts)
 S3method(print, summary.rqt)
 S3method(print, summary.rrq)
